@@ -54,7 +54,7 @@ resource "aws_glue_crawler" "glue_crawler" {
   database_name = aws_glue_catalog_database.glue_db.name
 
   s3_target {
-    path = "s3://${var.cleaned_bucket_name}/cleaned/"
+    path = "s3://${local.cleaned_bucket_name}/cleaned/"
   }
 
   depends_on = [aws_glue_job.glue_etl_job]
