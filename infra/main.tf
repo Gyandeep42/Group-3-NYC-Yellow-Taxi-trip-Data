@@ -8,6 +8,7 @@ locals {
   script_s3_path       = "s3://first-glue-bkt-grp-three-nyc/scripts/etl-glue-script.py"
   raw_data_s3_path     = "s3://first-glue-bkt-grp-three-nyc/raw_data/"
   cleaned_data_s3_path = "s3://try-ci-cd-bkt-cleanned/cleaned_data/"
+  raw_bucket_name = "s3://first-glue-bkt-grp-three-nyc"
 }
 
 resource "aws_glue_catalog_database" "nyc_db" {
