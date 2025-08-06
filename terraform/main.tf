@@ -1,6 +1,6 @@
-provider "aws" {
-  region = var.region
-}
+#provider "aws" {
+#  region = var.region
+#}
 
 locals {
   glue_role_arn = "arn:aws:iam::298417083584:role/LabRole"
