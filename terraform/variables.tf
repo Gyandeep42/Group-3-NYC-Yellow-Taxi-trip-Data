@@ -8,15 +8,18 @@ variable "bucket_name_prefix" {
   default = "opbkt-glue-rawautomate"
 }
 
-variable "try-ci-cd-bkt-raw" {
+variable "raw_bucket_name" {
   description = "Existing raw S3 bucket name"
   type        = string
+  default     = "try-ci-cd-bkt-raw"
 }
 
-variable "try-ci-cd-bkt-cleanned" {
+variable "cleaned_bucket_name" {
   description = "Existing cleaned S3 bucket name"
   type        = string
+  default     = "try-ci-cd-bkt-cleanned"
 }
+
 
 # Glue Catalog Database name
 variable "glue_db_name" {
