@@ -8,12 +8,12 @@ locals {
 
 # Create Raw Bucket
 resource "aws_s3_bucket" "raw_bucket" {
-  bucket = var.raw_bucket_name
+  bucket = var.try-ci-cd-bkt-raw
 }
 
 # Create Cleaned Bucket
 resource "aws_s3_bucket" "cleaned_bucket" {
-  bucket = var.cleaned_bucket_name
+  bucket = var.try-ci-cd-bkt-cleanned
 }
 
 # Create Glue Catalog Database
