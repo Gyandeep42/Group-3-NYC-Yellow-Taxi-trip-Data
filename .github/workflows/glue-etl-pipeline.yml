@@ -3,10 +3,10 @@ name: Deploy Glue ETL Pipeline
 on:
   push:
     branches:
-      - Gyandeep  # Trigger on push to 'Gyandeep' branch
+      - Gyandeep
 
 jobs:
-  Upload-to-s3:
+  infra-etl:
     runs-on: ubuntu-latest
 
     steps:
@@ -39,12 +39,12 @@ jobs:
       - name: Upload ETL Script to S3
         run: |
           aws s3 cp ./etl/etl-glue-script.py s3://opbkt-glue-rawonetwothree/etl/
-          echo "✅ ETL script uploaded to S3."
+          echo "ETL script uploaded."
 
       - name: Upload Raw Data Files to S3
         run: |
           aws s3 cp ./data/ s3://opbkt-glue-rawonetwothree/processed-output/ --recursive
-          echo "✅ Raw data uploaded to S3."
+          echo "Raw data uploaded."
 
       - name: Start Glue Job
         id: start_etl
@@ -67,16 +67,14 @@ jobs:
               --run-id "$JOB_RUN_ID" --query 'JobRun.JobRunState' --output text)
             echo "Current ETL job status: $STATUS"
             if [ "$STATUS" == "SUCCEEDED" ]; then
-              echo "🎉 ETL Job completed successfully."
+              echo "ETL Job completed successfully."
               break
             elif [ "$STATUS" == "FAILED" ] || [ "$STATUS" == "STOPPED" ]; then
-              echo "❌ ETL Job failed or was stopped."
+              echo "ETL Job failed or stopped."
               exit 1
             fi
             sleep 30
           done
 
       - name: Start Glue Crawler
-        run: |
-          aws glue start-crawler --name nyc-crawler-onetwothree
-          echo "🔄 Glue crawler started."
+        run: aws glue start-crawler --name nyc-crawler-onetwothree
