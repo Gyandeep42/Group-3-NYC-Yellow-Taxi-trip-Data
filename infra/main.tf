@@ -1,23 +1,15 @@
-provider "aws" {
-  region = "us-east-1"
+resource "aws_glue_catalog_database" "yellow_taxi_db" {
+  name = var.glue_db_name
 }
 
-resource "aws_s3_bucket" "etl_bucket" {
-  bucket = var.bucket_name
-  acl    = "private"
+resource "aws_glue_crawler" "yellow_taxi_crawler" {
+  name          = var.crawler_name
+  role          = var.crawler_role_arn
+  database_name = aws_glue_catalog_database.yellow_taxi_db.name
 
-  force_destroy = true
-
-  tags = {
-    Name        = "ETL Bucket"
-    Environment = "Dev"
+  s3_target {
+    path = var.s3_raw_path
   }
-}
 
-resource "aws_s3_bucket_public_access_block" "allow_public_access" {
-  bucket                  = aws_s3_bucket.etl_bucket.id
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
+  depends_on = [aws_glue_catalog_database.yellow_taxi_db]
 }
