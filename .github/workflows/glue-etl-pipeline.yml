@@ -1,15 +1,16 @@
-name: Upload Glue Script to S3
+name: Deploy Glue Pipeline
 
 on:
   push:
-    branches: [Gyandeep]  # or the branch you're using
+    branches: [Gyandeep]
 
 jobs:
-  upload-script:
+  deploy:
+    name: Terraform Deploy
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
       - name: Configure AWS Credentials
@@ -20,12 +21,16 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: us-east-1
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+
       - name: Upload Glue Script to S3
         run: |
           aws s3 cp etl/etl-glue-script.py s3://first-glue-bkt-grp-three-nyc/scripts/etl-glue-script.py
-          echo "✅ Glue script uploaded to S3."
-      
-      - name: Upload Parquet Data to S3
-        run: |
-          aws s3 cp data/part-00000-138827fc-5f4e-468e-aa87-5a4b0adc8fc0-c000.snappy.parquet s3://first-glue-bkt-grp-three-nyc/raw_data/
-          echo "✅ Parquet data file uploaded to S3."
+          aws s3 cp data/part-00000-*.parquet s3://first-glue-bkt-grp-three-nyc/raw_data/
