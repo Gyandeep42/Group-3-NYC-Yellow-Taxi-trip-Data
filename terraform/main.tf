@@ -32,14 +32,14 @@ resource "aws_glue_job" "glue_etl_job" {
 
   command {
     name            = "glueetl"
-    script_location = "s3://${var.raw_bucket_name}/${var.etl_script_s3_key}"
+    script_location = "s3://${local.raw_bucket_name}/${var.etl_script_s3_key}"
     python_version  = "3"
   }
 
   default_arguments = {
     "--job-language" = "python"
-    "--SOURCE_PATH"  = "s3://${var.raw_bucket_name}/processed-output/"
-    "--TARGET_PATH"  = "s3://${var.cleaned_bucket_name}/cleaned/"
+    "--SOURCE_PATH"  = "s3://${local.raw_bucket_name}/processed-output/"
+    "--TARGET_PATH"  = "s3://${local.cleaned_bucket_name}/cleaned/"
   }
 
   glue_version      = "4.0"
