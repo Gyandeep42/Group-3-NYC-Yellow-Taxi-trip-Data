@@ -22,5 +22,5 @@ jobs:
 
       - name: Upload Glue Script to S3
         run: |
-          aws s3 cp Group-3-NYC-Yellow-Taxi-trip-Data/etl/etl-glue-script.py s3://first-glue-bkt-grp-three-nyc/scripts/etl-glue-script.py
+          aws s3 cp etl/etl-glue-script.py s3://first-glue-bkt-grp-three-nyc/scripts/etl-glue-script.py
           echo "✅ Glue script uploaded to S3."
