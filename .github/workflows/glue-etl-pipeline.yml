@@ -27,25 +27,28 @@ jobs:
       run: terraform init
       working-directory: terraform
 
-    - name: Terraform Plan
-      run: terraform plan
-      working-directory: terraform
-
-    - name: Terraform Apply
+    - name: Terraform Apply (Create Buckets, Glue Job & Crawler)
       run: terraform apply -auto-approve
       working-directory: terraform
+
+    - name: Upload ETL script to S3
+      run: |
+        aws s3 cp ./etl/etl-glue-script.py s3://opbkt-glue-rawonetwothree/etl/
+    
+    - name: Upload raw data files to S3
+      run: |
+        aws s3 cp ./data/ s3://opbkt-glue-rawonetwothree/processed-output/ --recursive
 
     - name: Start Glue Job
       run: |
         aws glue start-job-run \
-          --job-name firstjob \
+          --job-name firstjobonetwothree \
           --arguments '{
-            "--JOB_NAME": "firstjob",
-            "--SOURCE_PATH": "s3://opbkt-glue/processed-output/",
-            "--TARGET_PATH": "s3://gpbkttt/cleaned/"
+            "--JOB_NAME": "firstjobonetwothree",
+            "--SOURCE_PATH": "s3://opbkt-glue-rawonetwothree/processed-output/",
+            "--TARGET_PATH": "s3://gpbkt-cleanedonetwothree/cleaned/"
           }'
 
     - name: Start Glue Crawler
       run: |
-        aws glue start-crawler --name nyc-crawler
-#yml script
+        aws glue start-crawler --name nyc-crawler-onetwothree
