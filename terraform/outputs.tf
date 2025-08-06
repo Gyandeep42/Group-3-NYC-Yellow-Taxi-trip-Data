@@ -14,6 +14,6 @@ output "glue_job_name" {
   value = aws_glue_job.this.name
 }
 
-output "crawler_name" {
+output "glue_crawler_name" {
   value = aws_glue_crawler.this.name
 }

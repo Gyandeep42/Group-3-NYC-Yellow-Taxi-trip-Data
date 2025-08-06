@@ -6,19 +6,23 @@ locals {
   glue_role_arn = "arn:aws:iam::298417083584:role/LabRole"
 }
 
+# Create Raw Bucket
 resource "aws_s3_bucket" "raw_bucket" {
   bucket = var.raw_bucket_name
 }
 
+# Create Cleaned Bucket
 resource "aws_s3_bucket" "cleaned_bucket" {
   bucket = var.cleaned_bucket_name
 }
 
-resource "aws_glue_catalog_database" "this" {
+# Create Glue Catalog Database
+resource "aws_glue_catalog_database" "glue_db" {
   name = var.glue_db_name
 }
 
-resource "aws_glue_job" "this" {
+# Create Glue ETL Job
+resource "aws_glue_job" "glue_etl_job" {
   name     = var.glue_job_name
   role_arn = local.glue_role_arn
 
@@ -39,16 +43,18 @@ resource "aws_glue_job" "this" {
   worker_type       = "G.1X"
 }
 
-resource "aws_glue_crawler" "this" {
+# Create Glue Crawler
+resource "aws_glue_crawler" "glue_crawler" {
   name          = var.glue_crawler_name
   role          = local.glue_role_arn
-  database_name = aws_glue_catalog_database.this.name
+  database_name = aws_glue_catalog_database.glue_db.name
 
   s3_target {
     path = "s3://${var.cleaned_bucket_name}/cleaned/"
   }
 
-  depends_on = [aws_glue_job.this]
+  depends_on = [aws_glue_job.glue_etl_job]
 }
 
+# Optional: Get account details (useful if needed for debugging)
 data "aws_caller_identity" "current" {}

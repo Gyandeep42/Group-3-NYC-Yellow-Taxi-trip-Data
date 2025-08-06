@@ -2,53 +2,81 @@ name: Deploy Glue ETL Pipeline
 
 on:
   push:
-    branches: [Gyandeep]
+    branches:
+      - Gyandeep  # Trigger on push to 'Gyandeep' branch
 
 jobs:
-  deploy:
+  infra-etl:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repo
-      uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v2
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-        aws-region: us-east-1
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
 
-    - name: Terraform Init
-      run: terraform init
-      working-directory: terraform
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init
 
-    - name: Terraform Apply (Create Buckets, Glue Job & Crawler)
-      run: terraform apply -auto-approve
-      working-directory: terraform
+      - name: Terraform Validate
+        working-directory: terraform
+        run: terraform validate
 
-    - name: Upload ETL script to S3
-      run: |
-        aws s3 cp ./etl/etl-glue-script.py s3://opbkt-glue-rawonetwothree/etl/
-    
-    - name: Upload raw data files to S3
-      run: |
-        aws s3 cp ./data/ s3://opbkt-glue-rawonetwothree/processed-output/ --recursive
+      - name: Terraform Apply
+        working-directory: terraform
+        run: terraform apply -auto-approve
 
-    - name: Start Glue Job
-      run: |
-        aws glue start-job-run \
-          --job-name firstjobonetwothree \
-          --arguments '{
-            "--JOB_NAME": "firstjobonetwothree",
-            "--SOURCE_PATH": "s3://opbkt-glue-rawonetwothree/processed-output/",
-            "--TARGET_PATH": "s3://gpbkt-cleanedonetwothree/cleaned/"
-          }'
+      - name: Upload ETL Script to S3
+        run: |
+          aws s3 cp ./etl/etl-glue-script.py s3://opbkt-glue-rawonetwothree/etl/
+          echo "✅ ETL script uploaded to S3."
 
-    - name: Start Glue Crawler
-      run: |
-        aws glue start-crawler --name nyc-crawler-onetwothree
+      - name: Upload Raw Data Files to S3
+        run: |
+          aws s3 cp ./data/ s3://opbkt-glue-rawonetwothree/processed-output/ --recursive
+          echo "✅ Raw data uploaded to S3."
+
+      - name: Start Glue Job
+        id: start_etl
+        run: |
+          JOB_RUN_ID=$(aws glue start-job-run --job-name firstjobonetwothree \
+            --arguments '{
+              "--JOB_NAME": "firstjobonetwothree",
+              "--SOURCE_PATH": "s3://opbkt-glue-rawonetwothree/processed-output/",
+              "--TARGET_PATH": "s3://gpbkt-cleanedonetwothree/cleaned/"
+            }' \
+            --query 'JobRunId' --output text)
+          echo "ETL JobRunId: $JOB_RUN_ID"
+          echo "job_run_id=$JOB_RUN_ID" >> $GITHUB_OUTPUT
+
+      - name: Wait for ETL Job Completion
+        run: |
+          JOB_RUN_ID=${{ steps.start_etl.outputs.job_run_id }}
+          while true; do
+            STATUS=$(aws glue get-job-run --job-name firstjobonetwothree \
+              --run-id "$JOB_RUN_ID" --query 'JobRun.JobRunState' --output text)
+            echo "Current ETL job status: $STATUS"
+            if [ "$STATUS" == "SUCCEEDED" ]; then
+              echo "🎉 ETL Job completed successfully."
+              break
+            elif [ "$STATUS" == "FAILED" ] || [ "$STATUS" == "STOPPED" ]; then
+              echo "❌ ETL Job failed or was stopped."
+              exit 1
+            fi
+            sleep 30
+          done
+
+      - name: Start Glue Crawler
+        run: |
+          aws glue start-crawler --name nyc-crawler-onetwothree
+          echo "🔄 Glue crawler started."
