@@ -3,23 +3,23 @@ variable "region" {
 }
 
 variable "raw_bucket_name" {
-  default = "opbkt-glue-raw"
+  default = "opbkt-glue-rawone"
 }
 
 variable "cleaned_bucket_name" {
-  default = "gpbkt-cleaned"
+  default = "gpbkt-cleanedone"
 }
 
 variable "glue_db_name" {
-  default = "nyc-yellow-taxi-trip-data-db"
+  default = "nyc-yellow-taxi-trip-data-dbone"
 }
 
 variable "glue_job_name" {
-  default = "firstjobone"
+  default = "firstjobonetwo"
 }
 
 variable "glue_crawler_name" {
-  default = "nyc-crawler-one"
+  default = "nyc-crawler-onetwo"
 }
 
 variable "etl_script_s3_key" {
