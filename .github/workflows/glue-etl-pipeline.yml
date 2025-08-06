@@ -1,20 +1,19 @@
-name: Deploy Glue ETL Pipeline
+name: S3 Bucket + Upload Glue Script
 
 on:
   push:
-    branches:
-      - Gyandeep
+    branches: [Gyandeep]
 
 jobs:
-  infra-etl:
+  setup-upload:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -22,59 +21,16 @@ jobs:
           aws-region: us-east-1
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init
-        working-directory: terraform
+        working-directory: infra
         run: terraform init
 
-      - name: Terraform Validate
-        working-directory: terraform
-        run: terraform validate
-
       - name: Terraform Apply
-        working-directory: terraform
+        working-directory: infra
         run: terraform apply -auto-approve
 
-      - name: Upload ETL Script to S3
+      - name: Upload Glue Script to S3
         run: |
-          aws s3 cp ./etl/etl-glue-script.py s3://try-ci-cd-bkt-raw/etl/
-          echo "ETL script uploaded."
-
-      - name: Upload Raw Data Files to S3
-        run: |
-          aws s3 cp ./data/ s3://opbkt-glue-rawonetwothree/processed-output/ --recursive
-          echo "Raw data uploaded."
-
-      - name: Start Glue Job
-        id: start_etl
-        run: |
-          JOB_RUN_ID=$(aws glue start-job-run --job-name firstjobonetwothree \
-            --arguments '{
-              "--JOB_NAME": "firstjobonetwothree",
-              "--SOURCE_PATH": "s3://try-ci-cd-bkt-raw/processed-output/",
-              "--TARGET_PATH": "s3://try-ci-cd-bkt-cleanned/cleaned/"
-            }' \
-            --query 'JobRunId' --output text)
-          echo "ETL JobRunId: $JOB_RUN_ID"
-          echo "job_run_id=$JOB_RUN_ID" >> $GITHUB_OUTPUT
-
-      - name: Wait for ETL Job Completion
-        run: |
-          JOB_RUN_ID=${{ steps.start_etl.outputs.job_run_id }}
-          while true; do
-            STATUS=$(aws glue get-job-run --job-name firstjobonetwothree \
-              --run-id "$JOB_RUN_ID" --query 'JobRun.JobRunState' --output text)
-            echo "Current ETL job status: $STATUS"
-            if [ "$STATUS" == "SUCCEEDED" ]; then
-              echo "ETL Job completed successfully."
-              break
-            elif [ "$STATUS" == "FAILED" ] || [ "$STATUS" == "STOPPED" ]; then
-              echo "ETL Job failed or stopped."
-              exit 1
-            fi
-            sleep 30
-          done
-
-      - name: Start Glue Crawler
-        run: aws glue start-crawler --name nyc-crawler-onetwothree
+          aws s3 cp Group-3-NYC-Yellow-Taxi-trip-Data/etl/etl-glue-script.py s3://first-glue-bkt-grp-three-nyc/scripts/etl-glue-script.py
