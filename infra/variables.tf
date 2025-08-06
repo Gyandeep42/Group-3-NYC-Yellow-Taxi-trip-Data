@@ -16,6 +16,12 @@ variable "region" {
   default     = "us-east-1" # or your desired region
 }
 
+variable "etl_script_s3_key" {
+  description = "S3 key (path) where the ETL script will be uploaded"
+  type        = string
+  default     = "scripts/etl-glue-script.py"
+}
+
 
 
 variable "script_s3_path" {
