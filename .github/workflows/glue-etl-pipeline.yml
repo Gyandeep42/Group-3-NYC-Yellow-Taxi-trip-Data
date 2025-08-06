@@ -1,11 +1,11 @@
-name: S3 Bucket + Upload Glue Script
+name: Upload Glue Script to S3
 
 on:
   push:
-    branches: [Gyandeep]
+    branches: [Gyandeep]  # or the branch you're using
 
 jobs:
-  setup-upload:
+  upload-script:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,17 +20,7 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: us-east-1
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      - name: Terraform Init
-        working-directory: infra
-        run: terraform init
-
-      - name: Terraform Apply
-        working-directory: infra
-        run: terraform apply -auto-approve
-
       - name: Upload Glue Script to S3
         run: |
-          aws s3 cp Group-3-NYC-Yellow-Taxi-trip-Data/etl/etl-glue-script.py s3://first-glue-bkt-grp-three-nyc/scripts/etl-glue-script.py
+          aws s3 cp glue-script/weather-etl.py s3://first-glue-bkt-grp-three-nyc/scripts/weather-etl.py
+          echo "✅ Glue script uploaded to S3."
