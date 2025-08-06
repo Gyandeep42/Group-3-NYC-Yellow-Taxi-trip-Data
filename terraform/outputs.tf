@@ -7,13 +7,13 @@ output "target_bucket" {
 }
 
 output "glue_database_name" {
-  value = aws_glue_catalog_database.this.name
+  value = aws_glue_catalog_database.glue_db.name
 }
 
 output "glue_job_name" {
-  value = aws_glue_job.this.name
+  value = aws_glue_job.glue_etl_job.name
 }
 
 output "glue_crawler_name" {
-  value = aws_glue_crawler.this.name
+  value = aws_glue_crawler.glue_crawler.name
 }
