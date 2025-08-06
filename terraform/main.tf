@@ -15,30 +15,28 @@ locals {
 #   bucket = var.cleaned_bucket_name
 # }
 
-data "aws_glue_catalog_database" "existing_db" {
+resource "aws_glue_catalog_database" "glue_db" {
   name = var.glue_db_name
 }
 
-# resource "aws_glue_job" "glue_etl_job" {
-#   name     = var.glue_job_name
-#   role_arn = local.glue_role_arn
+  name     = var.glue_job_name
+  role_arn = local.glue_role_arn
 
-#   command {
-#     name            = "glueetl"
-#     script_location = "s3://${var.raw_bucket_name}/${var.etl_script_s3_key}"
-#     python_version  = "3"
-#   }
+  command {
+    name            = "glueetl"
+    script_location = "s3://${var.raw_bucket_name}/${var.etl_script_s3_key}"
+    python_version  = "3"
+  }
 
-#   default_arguments = {
-#     "--job-language" = "python"
-#     "--SOURCE_PATH"  = "s3://${var.raw_bucket_name}/processed-output/"
-#     "--TARGET_PATH"  = "s3://${var.cleaned_bucket_name}/cleaned/"
-#   }
+  default_arguments = {
+    "--job-language" = "python"
+    "--SOURCE_PATH"  = "s3://${var.raw_bucket_name}/processed-output/"
+    "--TARGET_PATH"  = "s3://${var.cleaned_bucket_name}/cleaned/"
+  }
 
-#   glue_version      = "4.0"
-#   number_of_workers = 2
-#   worker_type       = "G.1X"
-# }
+  glue_version      = "4.0"
+  number_of_workers = 2
+  worker_type       = "G.1X"
 
 data "aws_glue_job" "existing_job" {
   name = var.glue_job_name
@@ -48,14 +46,15 @@ data "aws_glue_job" "existing_job" {
 resource "aws_glue_crawler" "glue_crawler" {
   name          = var.glue_crawler_name
   role          = local.glue_role_arn
-  database_name = data.aws_glue_catalog_database.existing_db.name
+  database_name = var.glue_db_name
 
   s3_target {
     path = "s3://${var.cleaned_bucket_name}/cleaned/"
   }
 
-  depends_on = [data.aws_glue_job.existing_job]
+  depends_on = [aws_glue_job.glue_etl_job]
 }
+
 
 
 data "aws_caller_identity" "current" {}
