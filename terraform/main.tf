@@ -14,8 +14,8 @@ provider "aws" {
 
 locals {
   glue_role_arn       = "arn:aws:iam::298417083584:role/LabRole"
-  raw_bucket_name     = var.try-ci-cd-bkt-raw
-  cleaned_bucket_name = var.try-ci-cd-bkt-cleanned
+  raw_bucket_name     = var.raw_bucket_name
+  cleaned_bucket_name = var.cleaned_bucket_name
 }
 
 
