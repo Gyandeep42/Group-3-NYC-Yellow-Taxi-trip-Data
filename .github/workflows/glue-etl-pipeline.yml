@@ -38,7 +38,7 @@ jobs:
 
       - name: Upload ETL Script to S3
         run: |
-          aws s3 cp ./etl/etl-glue-script.py s3://opbkt-glue-rawonetwothree/etl/
+          aws s3 cp ./etl/etl-glue-script.py s3://try-ci-cd-bkt-raw/etl/
           echo "ETL script uploaded."
 
       - name: Upload Raw Data Files to S3
@@ -52,8 +52,8 @@ jobs:
           JOB_RUN_ID=$(aws glue start-job-run --job-name firstjobonetwothree \
             --arguments '{
               "--JOB_NAME": "firstjobonetwothree",
-              "--SOURCE_PATH": "s3://opbkt-glue-rawonetwothree/processed-output/",
-              "--TARGET_PATH": "s3://gpbkt-cleanedonetwothree/cleaned/"
+              "--SOURCE_PATH": "s3://try-ci-cd-bkt-raw/processed-output/",
+              "--TARGET_PATH": "s3://try-ci-cd-bkt-cleanned/cleaned/"
             }' \
             --query 'JobRunId' --output text)
           echo "ETL JobRunId: $JOB_RUN_ID"

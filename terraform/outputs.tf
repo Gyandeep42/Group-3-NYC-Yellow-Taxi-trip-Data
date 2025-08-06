@@ -1,9 +1,9 @@
 output "source_bucket" {
-  value = var.raw_bucket_name
+  value = local.raw_bucket_name
 }
 
 output "target_bucket" {
-  value = var.cleaned_bucket_name
+  value = local.cleaned_bucket_name
 }
 
 output "glue_database_name" {

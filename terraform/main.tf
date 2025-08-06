@@ -6,15 +6,22 @@ locals {
   glue_role_arn = "arn:aws:iam::298417083584:role/LabRole"
 }
 
-# Create Raw Bucket
-resource "aws_s3_bucket" "raw_bucket" {
-  bucket = var.try-ci-cd-bkt-raw
+# resource "aws_s3_bucket" "raw_bucket" {
+#   bucket = var.try-ci-cd-bkt-raw
+# }
+
+# resource "aws_s3_bucket" "cleaned_bucket" {
+#   bucket = var.try-ci-cd-bkt-cleanned
+# }
+
+
+locals {
+  glue_role_arn       = "arn:aws:iam::298417083584:role/LabRole"
+  raw_bucket_name     = var.try-ci-cd-bkt-raw
+  cleaned_bucket_name = var.try-ci-cd-bkt-cleanned
 }
 
-# Create Cleaned Bucket
-resource "aws_s3_bucket" "cleaned_bucket" {
-  bucket = var.try-ci-cd-bkt-cleanned
-}
+
 
 # Create Glue Catalog Database
 resource "aws_glue_catalog_database" "glue_db" {
