@@ -24,3 +24,8 @@ jobs:
         run: |
           aws s3 cp etl/etl-glue-script.py s3://first-glue-bkt-grp-three-nyc/scripts/etl-glue-script.py
           echo "✅ Glue script uploaded to S3."
+      
+      - name: Upload Parquet Data to S3
+        run: |
+          aws s3 cp data/part-00000-138827fc-5f4e-468e-aa87-5a4b0adc8fc0-c000.snappy.parquet s3://first-glue-bkt-grp-three-nyc/raw_data/
+          echo "✅ Parquet data file uploaded to S3."
