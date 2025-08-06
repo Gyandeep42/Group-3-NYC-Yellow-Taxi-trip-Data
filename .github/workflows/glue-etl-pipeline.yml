@@ -6,7 +6,7 @@ on:
       - Gyandeep  # Trigger on push to 'Gyandeep' branch
 
 jobs:
-  infra-etl:
+  Upload-to-s3:
     runs-on: ubuntu-latest
 
     steps:
