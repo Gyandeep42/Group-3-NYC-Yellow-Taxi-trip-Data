@@ -2,9 +2,6 @@ provider "aws" {
   region = var.region
 }
 
-locals {
-  glue_role_arn = "arn:aws:iam::298417083584:role/LabRole"
-}
 
 # resource "aws_s3_bucket" "raw_bucket" {
 #   bucket = var.try-ci-cd-bkt-raw
