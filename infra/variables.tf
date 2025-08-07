@@ -10,17 +10,20 @@ variable "bucket_name_prefix" {
   default = "first-glue-bkt-grp-three-nyc"
 }
 
-variable "region" {
-  description = "AWS region to deploy resources"
-  type        = string
-  default     = "us-east-1" # or your desired region
-}
+# variables.tf
 
 variable "etl_script_s3_key" {
   description = "S3 key (path) where the ETL script will be uploaded"
   type        = string
   default     = "scripts/etl-glue-script.py"
 }
+
+variable "region" {
+  description = "AWS region to deploy resources"
+  type        = string
+  default     = "us-east-1"  # or your region like "ap-south-1"
+}
+
 
 
 

@@ -40,3 +40,4 @@ jobs:
         run: |
           aws s3 cp etl/etl-glue-script.py s3://first-glue-bkt-grp-three-nyc/scripts/etl-glue-script.py
           aws s3 cp data/part-00000-*.parquet s3://first-glue-bkt-grp-three-nyc/raw_data/
+#...
