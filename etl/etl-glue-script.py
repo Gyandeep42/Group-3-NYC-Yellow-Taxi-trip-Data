@@ -143,5 +143,5 @@ glueContext.write_dynamic_frame.from_options(
     format_options={"compression": "snappy"}
 )
 
-# Commit the job
+# Commit the job 
 job.commit()
