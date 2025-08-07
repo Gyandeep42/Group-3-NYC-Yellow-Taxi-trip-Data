@@ -4,7 +4,7 @@ resource "aws_s3_bucket" "etl_bucket" {
 }
 
 resource "aws_glue_catalog_database" "etl_db" {
-  name = "weather_db"
+  name = "nyc-taxi-trip_db"
 }
 
 locals {
