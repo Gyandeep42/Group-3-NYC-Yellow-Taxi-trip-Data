@@ -1,14 +1,20 @@
-name: Deploy Glue Pipeline
+name: Terraform + ETL Automation
 
 on:
   push:
-    branches: [Gyandeep]
+    branches:
+      - Gyandeep
+
+env:
+  AWS_REGION: ${{ secrets.REGION }}
+  SCRIPT_PATH: etl\etl-glue-script.py
+  S3_BUCKET: third-glue-bkt-grp-three-nyc
+  ETL_JOB_NAME: glue-etl-job
+  CRAWLER_NAME: my-etl-crawler
 
 jobs:
-  deploy:
-    name: Terraform Deploy
+  infra-deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -19,25 +25,62 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: us-east-1
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init
         working-directory: infra
         run: terraform init
 
-      - name: Terraform Plan
+      - name: Terraform Validate
         working-directory: infra
-        run: terraform plan
+        run: terraform validate
 
       - name: Terraform Apply
         working-directory: infra
         run: terraform apply -auto-approve
 
-      - name: Upload Glue Script to S3
+  run-etl:
+    needs: infra-deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload ETL Script to S3
         run: |
-          aws s3 cp etl/etl-glue-script.py s3://first-glue-bkt-grp-three-nyc/scripts/etl-glue-script.py
-          aws s3 cp data/part-00000-*.parquet s3://first-glue-bkt-grp-three-nyc/raw_data/
-#...
+          aws s3 cp ${{ env.SCRIPT_PATH }} s3://${{ env.S3_BUCKET }}/scripts/etl-glue-script.py
+          echo "ETL script uploaded to S3."
+      - name: Start Glue ETL Job
+        id: start_etl
+        run: |
+          JOB_RUN_ID=$(aws glue start-job-run --job-name ${{ env.ETL_JOB_NAME }} --query 'JobRunId' --output text)
+          echo "ETL JobRunId: $JOB_RUN_ID"
+          echo "job_run_id=$JOB_RUN_ID" >> $GITHUB_OUTPUT
+      - name: Wait for ETL Job Completion
+        run: |
+          JOB_RUN_ID=${{ steps.start_etl.outputs.job_run_id }}
+          while true; do
+            STATUS=$(aws glue get-job-run --job-name ${{ env.ETL_JOB_NAME }} --run-id "$JOB_RUN_ID" --query 'JobRun.JobRunState' --output text)
+            echo "Current ETL job status: $STATUS"
+            if [ "$STATUS" == "SUCCEEDED" ]; then
+              echo "ETL Job completed successfully."
+              break
+            elif [ "$STATUS" == "FAILED" ] || [ "$STATUS" == "STOPPED" ]; then
+              echo "ETL Job failed or stopped."
+              exit 1
+            fi
+            sleep 30
+          done
+      - name: Start Glue Crawler
+        run: aws glue start-crawler --name ${{ env.CRAWLER_NAME }}

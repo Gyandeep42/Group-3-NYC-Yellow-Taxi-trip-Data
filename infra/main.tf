@@ -1,53 +1,39 @@
 
+resource "aws_s3_bucket" "etl_bucket" {
+  bucket = var.bucket_name_prefix
+}
 
-data "aws_caller_identity" "current" {}
+resource "aws_glue_catalog_database" "etl_db" {
+  name = "weather_db"
+}
 
 locals {
-  glue_role_name       = "AWSGlueServiceRoleDefault"
-  glue_role_arn        = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${local.glue_role_name}"
-  script_s3_path       = "s3://first-glue-bkt-grp-three-nyc/scripts/etl-glue-script.py"
-  raw_data_s3_path     = "s3://first-glue-bkt-grp-three-nyc/raw_data/"
-  cleaned_data_s3_path = "s3://try-ci-cd-bkt-cleanned/cleaned_data/"
-  raw_bucket_name = "s3://first-glue-bkt-grp-three-nyc"
+  glue_role_arn = "arn:aws:iam::963702399712:role/LabRole"
 }
 
-resource "aws_glue_catalog_database" "nyc_db" {
-  name = "nyc_yellow_trip_db"
-}
-
-resource "aws_glue_job" "nyc_etl_job" {
-  name     = "nyc-yellow-taxi-etl-job"
+resource "aws_glue_job" "etl_job" {
+  name     = var.glue_job_name
   role_arn = local.glue_role_arn
 
   command {
     name            = "glueetl"
-    script_location = local.script_s3_path
+    script_location = var.script_s3_path
     python_version  = "3"
-  }
-
-  default_arguments = {
-    "--TempDir"         = "${local.cleaned_data_s3_path}temp/"
-    "--job-language"    = "python"
-    "--raw_bucket"      = local.raw_data_s3_path
-    "--cleaned_bucket"  = local.cleaned_data_s3_path
   }
 
   glue_version      = "4.0"
   number_of_workers = 2
   worker_type       = "G.1X"
-  execution_property {
-    max_concurrent_runs = 1
-  }
 }
 
-resource "aws_glue_crawler" "nyc_crawler" {
-  name          = "nyc-yellow-crawler"
+resource "aws_glue_crawler" "etl_crawler" {
+  name          = var.glue_crawler_name
   role          = local.glue_role_arn
-  database_name = aws_glue_catalog_database.nyc_db.name
+  database_name = aws_glue_catalog_database.etl_db.name
 
   s3_target {
-    path = local.cleaned_data_s3_path
+    path = "s3://${var.bucket_name_prefix}/transformeddata/"
   }
 
-  schedule = "cron(0 12 * * ? *)"
+  depends_on = [aws_glue_job.etl_job]
 }
