@@ -113,7 +113,7 @@ transformed_df = (master_df
     .drop("service_zone")
 )
 
-transformed_df.write.mode("overwrite").partitionBy("year").parquet("s3://raw-data-grp-3/cleaned data/")
+transformed_df.write.mode("overwrite").partitionBy("year").parquet("s3://raw-data-grp-3/cleaned-data/")
 
 # Commit the job
 job.commit()
