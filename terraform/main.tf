@@ -52,7 +52,7 @@ locals {
 
 resource "aws_glue_job" "etl_job" {
     name = "${var.glue_job_name}-${random_string.suffix.result}"
-  role_arn = local.glue_role_arn
+    role_arn = local.glue_role_arn
 
   command {
     name            = "glueetl"
