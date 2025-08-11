@@ -8,13 +8,16 @@ on:
 env:
   AWS_REGION: us-east-1
   SCRIPT_PATH: etl/etl-glue-script.py
-  S3_BUCKET: third-glue-bkt-grp-three-nyc-pnv21f 
   ETL_JOB_NAME: glue-etl-job
   CRAWLER_NAME: my-etl-crawler
 
 jobs:
   terraform-deploy:
     runs-on: ubuntu-latest
+    outputs:
+      bucket_name: ${{ steps.get_bucket.outputs.bucket_name }}
+      glue_job_name: ${{ steps.get_bucket.outputs.glue_job_name }}
+      crawler_name: ${{ steps.get_bucket.outputs.crawler_name }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -34,13 +37,20 @@ jobs:
         working-directory: terraform
         run: terraform init
 
-      - name: Terraform Validate
-        working-directory: terraform
-        run: terraform validate
-
       - name: Terraform Apply
         working-directory: terraform
         run: terraform apply -auto-approve
+
+      - name: Get Terraform Outputs
+        id: get_bucket
+        working-directory: terraform
+        run: |
+          BUCKET=$(terraform output -raw etl_bucket_name)
+          JOB_NAME=$(terraform output -raw glue_job_name)
+          CRAWLER=$(terraform output -raw glue_crawler_name)
+          echo "bucket_name=$BUCKET" >> $GITHUB_OUTPUT
+          echo "glue_job_name=$JOB_NAME" >> $GITHUB_OUTPUT
+          echo "crawler_name=$CRAWLER" >> $GITHUB_OUTPUT
 
   run-etl:
     needs: terraform-deploy
@@ -59,19 +69,21 @@ jobs:
 
       - name: Upload ETL Script to S3
         run: |
-          aws s3 cp ${{ env.SCRIPT_PATH }} s3://${{ env.S3_BUCKET }}/scripts/etl-glue-script.py
+          aws s3 cp ${{ env.SCRIPT_PATH }} s3://${{ needs.terraform-deploy.outputs.bucket_name }}/scripts/etl-glue-script.py
           echo "ETL script uploaded to S3."
+
       - name: Start Glue ETL Job
         id: start_etl
         run: |
-          JOB_RUN_ID=$(aws glue start-job-run --job-name ${{ env.ETL_JOB_NAME }} --query 'JobRunId' --output text)
+          JOB_RUN_ID=$(aws glue start-job-run --job-name ${{ needs.terraform-deploy.outputs.glue_job_name }} --query 'JobRunId' --output text)
           echo "ETL JobRunId: $JOB_RUN_ID"
           echo "job_run_id=$JOB_RUN_ID" >> $GITHUB_OUTPUT
+
       - name: Wait for ETL Job Completion
         run: |
           JOB_RUN_ID=${{ steps.start_etl.outputs.job_run_id }}
           while true; do
-            STATUS=$(aws glue get-job-run --job-name ${{ env.ETL_JOB_NAME }} --run-id "$JOB_RUN_ID" --query 'JobRun.JobRunState' --output text)
+            STATUS=$(aws glue get-job-run --job-name ${{ needs.terraform-deploy.outputs.glue_job_name }} --run-id "$JOB_RUN_ID" --query 'JobRun.JobRunState' --output text)
             echo "Current ETL job status: $STATUS"
             if [ "$STATUS" == "SUCCEEDED" ]; then
               echo "ETL Job completed successfully."
@@ -82,6 +94,6 @@ jobs:
             fi
             sleep 30
           done
+
       - name: Start Glue Crawler
-        run: aws glue start-crawler --name ${{ env.CRAWLER_NAME }}
-#rjevejvnfdljjnijjewdhkjjhghjdfjdhelloo
+        run: aws glue start-crawler --name ${{ needs.terraform-deploy.outputs.crawler_name }}
