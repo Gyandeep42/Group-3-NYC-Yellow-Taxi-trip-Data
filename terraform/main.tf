@@ -56,7 +56,7 @@ resource "aws_glue_job" "etl_job" {
 
   command {
     name            = "glueetl"
-    script_location = var.script_s3_path
+    script_location = local.script_s3_path
     python_version  = "3"
   }
 
