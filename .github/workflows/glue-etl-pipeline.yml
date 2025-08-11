@@ -67,10 +67,7 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Upload ETL Script to S3
-        run: |
-          aws s3 cp ${{ env.SCRIPT_PATH }} s3://${{ needs.terraform-deploy.outputs.bucket_name }}/scripts/etl-glue-script.py
-          echo "ETL script uploaded to S3."
+      
 
       - name: Start Glue ETL Job
         id: start_etl

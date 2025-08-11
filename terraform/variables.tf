@@ -26,5 +26,5 @@ data "aws_s3_bucket" "script_bucket" {
 
 # Build the script path dynamically from actual bucket
 locals {
-  script_s3_path = "s3://${data.aws_s3_bucket.script_bucket.id}/scripts/etl-glue-script.py"
+  script_s3_path = "s3://${aws_s3_bucket.etl_bucket.bucket}/scripts/etl-glue-script.py"
 }

@@ -5,6 +5,8 @@ resource "random_string" "suffix" {
   special = false
 }
 
+
+
 resource "aws_s3_bucket" "etl_bucket" {
   bucket        = "${var.bucket_name_prefix}-${random_string.suffix.result}"
   force_destroy = true
@@ -50,6 +52,13 @@ locals {
   glue_role_arn = "arn:aws:iam::914016866997:role/LabRole"
 }
 
+resource "aws_s3_object" "glue_script" {
+  bucket = aws_s3_bucket.etl_bucket.bucket
+  key    = "scripts/etl-glue-script.py"
+  source = "${path.module}/../etl/etl-glue-script.py" # Adjust path if needed
+  etag   = filemd5("${path.module}/../etl/etl-glue-script.py")
+}
+
 resource "aws_glue_job" "etl_job" {
     name = "${var.glue_job_name}-${random_string.suffix.result}"
     role_arn = local.glue_role_arn
@@ -65,6 +74,9 @@ resource "aws_glue_job" "etl_job" {
   worker_type       = "G.1X"
 }
 
+depends_on = [aws_s3_object.glue_script]
+
+
 resource "aws_glue_crawler" "etl_crawler" {
     name = "${var.glue_crawler_name}-${random_string.suffix.result}"
     role= local.glue_role_arn
@@ -73,6 +85,7 @@ resource "aws_glue_crawler" "etl_crawler" {
   s3_target {
     path = "s3://inputdata-bucket-test/cleaned-data/transformeddata/"
   }
+
 
   depends_on = [aws_glue_job.etl_job]
 }
