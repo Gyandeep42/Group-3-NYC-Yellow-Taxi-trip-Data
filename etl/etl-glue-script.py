@@ -117,3 +117,4 @@ transformed_df.write.mode("overwrite").partitionBy("year").parquet("s3://inputda
 
 # Commit the job
 job.commit()
+
