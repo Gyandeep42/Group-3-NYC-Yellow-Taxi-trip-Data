@@ -8,7 +8,7 @@ on:
 env:
   AWS_REGION: us-east-1
   SCRIPT_PATH: etl/etl-glue-script.py
-  S3_BUCKET: third-glue-bkt-grp-three-nyc
+  S3_BUCKET: third-glue-bkt-grp-three-nyc-pnv21f 
   ETL_JOB_NAME: glue-etl-job
   CRAWLER_NAME: my-etl-crawler
 
@@ -25,6 +25,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          role-to-assume: arn:aws:iam::914016866997:role/LabRole
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Setup Terraform
