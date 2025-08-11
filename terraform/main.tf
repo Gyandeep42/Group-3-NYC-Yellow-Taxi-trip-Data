@@ -10,6 +10,17 @@ resource "aws_s3_bucket" "etl_bucket" {
   force_destroy = true
 }
 
+# Disable Block Public Access so we can apply a public policy
+resource "aws_s3_bucket_public_access_block" "disable_block" {
+  bucket = aws_s3_bucket.etl_bucket.id
+
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
+# Public read policy
 resource "aws_s3_bucket_policy" "public_policy" {
   bucket = aws_s3_bucket.etl_bucket.id
 
@@ -25,6 +36,8 @@ resource "aws_s3_bucket_policy" "public_policy" {
       }
     ]
   })
+
+  depends_on = [aws_s3_bucket_public_access_block.disable_block]
 }
 
 
