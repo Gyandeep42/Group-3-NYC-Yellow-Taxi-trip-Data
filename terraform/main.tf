@@ -106,8 +106,9 @@ resource "aws_glue_crawler" "etl_crawler" {
   role          = local.glue_role_arn
   database_name = aws_glue_catalog_database.etl_db.name
 
+  
   s3_target {
-    path = "s3://inputdata-bucket-test/cleaned-data/transformeddata/"
+    path = "s3://${aws_s3_bucket.etl_bucket.bucket}/cleaned-data/transformeddata/"
   }
 
   depends_on = [aws_glue_job.etl_job]
