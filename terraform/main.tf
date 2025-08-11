@@ -26,7 +26,7 @@ resource "aws_s3_bucket_acl" "etl_bucket_acl" {
   acl        = "private" # Change to "public-read" if needed
 }
 
-# Disable Block Public Access so we can apply a public policy
+# Disable Block Public Access
 resource "aws_s3_bucket_public_access_block" "disable_block" {
   bucket = aws_s3_bucket.etl_bucket.id
 
@@ -36,19 +36,28 @@ resource "aws_s3_bucket_public_access_block" "disable_block" {
   restrict_public_buckets = false
 }
 
-# Public read policy
-resource "aws_s3_bucket_policy" "public_policy" {
+# Bucket policy to allow Glue role read/write
+resource "aws_s3_bucket_policy" "glue_access" {
   bucket = aws_s3_bucket.etl_bucket.id
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Sid       = "PublicReadGetObject"
+        Sid       = "AllowGlueReadWrite"
         Effect    = "Allow"
-        Principal = "*"
-        Action    = "s3:GetObject"
-        Resource  = "${aws_s3_bucket.etl_bucket.arn}/*"
+        Principal = {
+          AWS = "arn:aws:iam::914016866997:role/LabRole"
+        }
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.etl_bucket.arn,
+          "${aws_s3_bucket.etl_bucket.arn}/*"
+        ]
       }
     ]
   })
@@ -56,14 +65,18 @@ resource "aws_s3_bucket_policy" "public_policy" {
   depends_on = [aws_s3_bucket_public_access_block.disable_block]
 }
 
+# Glue database
 resource "aws_glue_catalog_database" "etl_db" {
   name = "nyc-taxi-trip-db-${random_string.suffix.result}"
 }
 
+# Local variables
 locals {
   glue_role_arn   = "arn:aws:iam::914016866997:role/LabRole"
- }
+  script_s3_path  = "s3://${aws_s3_bucket.etl_bucket.bucket}/scripts/etl-glue-script.py"
+}
 
+# Upload Glue ETL script to S3
 resource "aws_s3_object" "glue_script" {
   bucket = aws_s3_bucket.etl_bucket.bucket
   key    = "scripts/etl-glue-script.py"
@@ -71,6 +84,7 @@ resource "aws_s3_object" "glue_script" {
   etag   = filemd5("${path.module}/../etl/etl-glue-script.py")
 }
 
+# Glue job
 resource "aws_glue_job" "etl_job" {
   name     = "${var.glue_job_name}-${random_string.suffix.result}"
   role_arn = local.glue_role_arn
@@ -87,6 +101,7 @@ resource "aws_glue_job" "etl_job" {
   depends_on        = [aws_s3_object.glue_script]
 }
 
+# Glue crawler
 resource "aws_glue_crawler" "etl_crawler" {
   name          = "${var.glue_crawler_name}-${random_string.suffix.result}"
   role          = local.glue_role_arn
