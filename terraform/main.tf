@@ -4,16 +4,26 @@ resource "random_string" "suffix" {
   special = false
 }
 
+# Create bucket
 resource "aws_s3_bucket" "etl_bucket" {
-  bucket            = "${var.bucket_name_prefix}-${random_string.suffix.result}"
-  force_destroy     = true
-  object_ownership  = "ObjectWriter" # ✅ Enable ACLs
+  bucket        = "${var.bucket_name_prefix}-${random_string.suffix.result}"
+  force_destroy = true
+}
+
+# Enable ACLs by setting object ownership
+resource "aws_s3_bucket_ownership_controls" "acl_control" {
+  bucket = aws_s3_bucket.etl_bucket.id
+
+  rule {
+    object_ownership = "ObjectWriter"
+  }
 }
 
 # Set ACL for the bucket
 resource "aws_s3_bucket_acl" "etl_bucket_acl" {
-  bucket = aws_s3_bucket.etl_bucket.id
-  acl    = "private" # Can change to "public-read" if needed
+  depends_on = [aws_s3_bucket_ownership_controls.acl_control]
+  bucket     = aws_s3_bucket.etl_bucket.id
+  acl        = "private" # Change to "public-read" if needed
 }
 
 # Disable Block Public Access so we can apply a public policy
@@ -51,7 +61,8 @@ resource "aws_glue_catalog_database" "etl_db" {
 }
 
 locals {
-  glue_role_arn = "arn:aws:iam::914016866997:role/LabRole"
+  glue_role_arn   = "arn:aws:iam::914016866997:role/LabRole"
+  script_s3_path  = "s3://${aws_s3_bucket.etl_bucket.bucket}/scripts/etl-glue-script.py"
 }
 
 resource "aws_s3_object" "glue_script" {
