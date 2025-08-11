@@ -19,8 +19,12 @@ variable "glue_crawler_name" {
   default = "my-etl-crawler"
 }
 
-#declare a script path
-variable "script_s3_path" {
-  default = "s3://third-glue-bkt-grp-three-nyc/scripts/etl-glue-script.py"
+# Get the bucket name that matches the prefix
+data "aws_s3_bucket" "script_bucket" {
+  bucket = "${var.bucket_name_prefix}-pnv21f" # Or dynamically fetched
 }
-#try
+
+# Build the script path dynamically from actual bucket
+locals {
+  script_s3_path = "s3://${data.aws_s3_bucket.script_bucket.id}/scripts/etl-glue-script.py"
+}
