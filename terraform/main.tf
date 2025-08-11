@@ -73,8 +73,7 @@ resource "aws_glue_catalog_database" "etl_db" {
 # Local variables
 locals {
   glue_role_arn   = "arn:aws:iam::914016866997:role/LabRole"
-  script_s3_path  = "s3://${aws_s3_bucket.etl_bucket.bucket}/scripts/etl-glue-script.py"
-}
+ }
 
 # Upload Glue ETL script to S3
 resource "aws_s3_object" "glue_script" {
