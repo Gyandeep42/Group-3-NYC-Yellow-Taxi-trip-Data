@@ -7,12 +7,21 @@ variable "region" {
 variable "backend_bucket" {
   description = "S3 bucket for Terraform backend"
   type        = string
+  default     = "my-terraform-backend-bucket"
 }
 
 variable "backend_key" {
-  description = "Path/key for Terraform state file in backend bucket"
+  description = "Path/key for Terraform state file"
   type        = string
+  default     = "terraform/state.tfstate"
 }
+
+variable "glue_script_s3_path" {
+  description = "S3 path for Glue ETL script"
+  type        = string
+  default     = "s3://my-etl-scripts/etl-glue-script.py"
+}
+
 
 variable "etl_bucket_prefix" {
   description = "Prefix for ETL S3 bucket"
