@@ -1,126 +1,81 @@
-# ===============================
-# Provider Configuration
-# ===============================
-provider "aws" {
-  region = var.region
+# S3 bucket for ETL scripts and data
+resource "aws_s3_bucket" "etl_bucket" {
+  bucket = var.etl_bucket_name
+
+  tags = {
+    Name        = "ETL Bucket"
+    Environment = "Dev"
+  }
 }
 
-# ===============================
-# Variables
-# ===============================
-variable "region" {
-  description = "AWS region to deploy resources in"
-  type        = string
-  default     = "us-east-1"
+# S3 bucket policy to allow Glue access
+resource "aws_s3_bucket_policy" "glue_access" {
+  bucket = aws_s3_bucket.etl_bucket.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Sid       = "AllowGlueReadWrite",
+        Effect    = "Allow",
+        Principal = {
+          AWS = var.glue_role_arn
+        },
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject",
+          "s3:ListBucket"
+        ],
+        Resource = [
+          "${aws_s3_bucket.etl_bucket.arn}",
+          "${aws_s3_bucket.etl_bucket.arn}/*"
+        ]
+      }
+    ]
+  })
 }
 
-variable "glue_db_name" {
-  description = "Name of the Glue database"
-  type        = string
-  default     = "my_glue_db"
-}
-
-variable "glue_job_name" {
-  description = "Name of the Glue ETL job"
-  type        = string
-  default     = "glue-etl-job"
-}
-
-variable "glue_crawler_name" {
-  description = "Name of the Glue crawler"
-  type        = string
-  default     = "my-etl-crawler"
-}
-
-variable "script_file" {
-  description = "Local path to Glue ETL script"
-  type        = string
-  default     = "etl/etl-glue-script.py"
-}
-
-# ===============================
-# Locals
-# ===============================
-locals {
-  script_s3_path = "s3://${aws_s3_bucket.etl_scripts.bucket}/scripts/${basename(var.script_file)}"
-}
-
-# ===============================
-# S3 Bucket for Scripts
-# ===============================
-resource "aws_s3_bucket" "etl_scripts" {
-  bucket = "etl-scripts-${random_id.bucket_suffix.hex}"
-}
-
-resource "random_id" "bucket_suffix" {
-  byte_length = 4
-}
-
-resource "aws_s3_object" "glue_script" {
-  bucket = aws_s3_bucket.etl_scripts.bucket
-  key    = "scripts/${basename(var.script_file)}"
-  source = var.script_file
-}
-
-# ===============================
-# Glue Database
-# ===============================
-resource "aws_glue_catalog_database" "this" {
+# Glue Catalog Database
+resource "aws_glue_catalog_database" "etl_db" {
   name = var.glue_db_name
 }
 
-# ===============================
-# Glue Job
-# ===============================
-resource "aws_glue_job" "this" {
+# Glue ETL Job
+resource "aws_glue_job" "etl_job" {
   name     = var.glue_job_name
-  role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/LabRole"
+  role_arn = var.glue_role_arn
 
   command {
     name            = "glueetl"
-    script_location = local.script_s3_path
+    script_location = "s3://${aws_s3_bucket.etl_bucket.bucket}/${var.script_s3_key}"
     python_version  = "3"
   }
 
-  default_arguments = {
-    "--TempDir" = "s3://${aws_s3_bucket.etl_scripts.bucket}/temp/"
-  }
+  max_retries = 1
+  glue_version = "3.0"
 
-  glue_version = "4.0"
-  max_capacity = 2
+  default_arguments = {
+    "--job-language" = "python"
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics" = "true"
+  }
 }
 
-# ===============================
 # Glue Crawler
-# ===============================
-resource "aws_glue_crawler" "this" {
-  name          = var.glue_crawler_name
-  role          = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/LabRole"
-  database_name = aws_glue_catalog_database.this.name
+resource "aws_glue_crawler" "etl_crawler" {
+  name         = var.glue_crawler_name
+  role         = var.glue_role_arn
+  database_name = aws_glue_catalog_database.etl_db.name
 
   s3_target {
-    path = "s3://${aws_s3_bucket.etl_scripts.bucket}/output/"
+    path = "s3://${aws_s3_bucket.etl_bucket.bucket}/"
   }
 
   schedule = "cron(0 12 * * ? *)"
-}
 
-# ===============================
-# Data Sources
-# ===============================
-data "aws_caller_identity" "current" {}
-
-# ===============================
-# Outputs
-# ===============================
-output "etl_bucket_name" {
-  value = aws_s3_bucket.etl_scripts.bucket
-}
-
-output "glue_job_name" {
-  value = aws_glue_job.this.name
-}
-
-output "glue_crawler_name" {
-  value = aws_glue_crawler.this.name
+  schema_change_policy {
+    delete_behavior = "LOG"
+    update_behavior = "UPDATE_IN_DATABASE"
+  }
 }
