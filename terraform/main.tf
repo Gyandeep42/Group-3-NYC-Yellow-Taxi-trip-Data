@@ -1,91 +1,49 @@
-resource "random_string" "suffix" {
-  length  = 6
-  upper   = false
-  special = false
+# ===== Variables =====
+variable "region" {
+  default = "us-east-1"
 }
 
-# Create bucket
-resource "aws_s3_bucket" "etl_bucket" {
-  bucket        = "${var.bucket_name_prefix}-${random_string.suffix.result}"
-  force_destroy = true
+variable "etl_bucket_name" {
+  default = "third-glue-bkt-grp-three-nyc" # Permanent bucket
 }
 
-# Enable ACLs by setting object ownership
-resource "aws_s3_bucket_ownership_controls" "acl_control" {
-  bucket = aws_s3_bucket.etl_bucket.id
-
-  rule {
-    object_ownership = "ObjectWriter"
-  }
+variable "glue_job_name" {
+  default = "glue-etl-job"
 }
 
-# Set ACL for the bucket
-resource "aws_s3_bucket_acl" "etl_bucket_acl" {
-  depends_on = [aws_s3_bucket_ownership_controls.acl_control]
-  bucket     = aws_s3_bucket.etl_bucket.id
-  acl        = "private" # Change to "public-read" if needed
+variable "glue_crawler_name" {
+  default = "my-etl-crawler"
 }
 
-# Disable Block Public Access
-resource "aws_s3_bucket_public_access_block" "disable_block" {
-  bucket = aws_s3_bucket.etl_bucket.id
-
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
+# ===== Data Source: Existing Bucket =====
+data "aws_s3_bucket" "etl_bucket" {
+  bucket = var.etl_bucket_name
 }
 
-# Bucket policy to allow Glue role read/write
-resource "aws_s3_bucket_policy" "glue_access" {
-  bucket = aws_s3_bucket.etl_bucket.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid       = "AllowGlueReadWrite"
-        Effect    = "Allow"
-        Principal = {
-          AWS = "arn:aws:iam::914016866997:role/LabRole"
-        }
-        Action = [
-          "s3:GetObject",
-          "s3:PutObject",
-          "s3:ListBucket"
-        ]
-        Resource = [
-          aws_s3_bucket.etl_bucket.arn,
-          "${aws_s3_bucket.etl_bucket.arn}/*"
-        ]
-      }
-    ]
-  })
-
-  depends_on = [aws_s3_bucket_public_access_block.disable_block]
-}
-
-# Glue database
-resource "aws_glue_catalog_database" "etl_db" {
-  name = "nyc-taxi-trip-db-${random_string.suffix.result}"
-}
-
-# Local variables
+# ===== Local Variables =====
 locals {
   glue_role_arn   = "arn:aws:iam::914016866997:role/LabRole"
- }
+  run_folder      = formatdate("YYYYMMDD-HHmmss", timestamp())
+  script_s3_path  = "s3://${var.etl_bucket_name}/scripts/${local.run_folder}/etl-glue-script.py"
+  transformed_path = "s3://${var.etl_bucket_name}/cleaned-data/${local.run_folder}/"
+}
 
-# Upload Glue ETL script to S3
+# ===== Glue Database =====
+resource "aws_glue_catalog_database" "etl_db" {
+  name = "nyc-taxi-trip-db"
+}
+
+# ===== Upload Glue Script =====
 resource "aws_s3_object" "glue_script" {
-  bucket = aws_s3_bucket.etl_bucket.bucket
-  key    = "scripts/etl-glue-script.py"
+  bucket = var.etl_bucket_name
+  key    = "scripts/${local.run_folder}/etl-glue-script.py"
   source = "${path.module}/../etl/etl-glue-script.py"
   etag   = filemd5("${path.module}/../etl/etl-glue-script.py")
 }
 
-# Glue job
+# ===== Glue Job =====
 resource "aws_glue_job" "etl_job" {
-  name     = "${var.glue_job_name}-${random_string.suffix.result}"
+  name     = var.glue_job_name
   role_arn = local.glue_role_arn
 
   command {
@@ -100,17 +58,28 @@ resource "aws_glue_job" "etl_job" {
   depends_on        = [aws_s3_object.glue_script]
 }
 
-# Glue crawler
+# ===== Glue Crawler =====
 resource "aws_glue_crawler" "etl_crawler" {
-  name          = "${var.glue_crawler_name}-${random_string.suffix.result}"
+  name          = var.glue_crawler_name
   role          = local.glue_role_arn
   database_name = aws_glue_catalog_database.etl_db.name
 
-  
   s3_target {
-    path = "s3://${aws_s3_bucket.etl_bucket.bucket}/cleaned-data/transformeddata/"
+    path = local.transformed_path
   }
 
   depends_on = [aws_glue_job.etl_job]
-} 
- #hello
+}
+
+# ===== Outputs =====
+output "etl_bucket_name" {
+  value = var.etl_bucket_name
+}
+
+output "glue_job_name" {
+  value = aws_glue_job.etl_job.name
+}
+
+output "glue_crawler_name" {
+  value = aws_glue_crawler.etl_crawler.name
+}
