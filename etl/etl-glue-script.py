@@ -5,6 +5,7 @@ from awsglue.context import GlueContext
 from awsglue.job import Job
 from pyspark.context import SparkContext
 from pyspark.sql import Window
+from pyspark.sql import SparkSession
 from pyspark.sql.functions import lit, col, when, expr, to_date, date_format, year, dayofmonth, floor, row_number, hour
 from pyspark.sql.types import IntegerType
 from awsglue.dynamicframe import DynamicFrame
@@ -17,29 +18,18 @@ spark = glueContext.spark_session
 job = Job(glueContext)
 job.init(args['JOB_NAME'], args)
 
-# Load datasets
-master_dyf = glueContext.create_dynamic_frame.from_options(
-    connection_type="s3",
-    connection_options={"paths": ["s3://nycfinalp/final-merged-copy/part-00000-a9b37a2c-b51f-4a69-9db2-bffec381dc6c-c000.snappy.parquet"]},
-    format="parquet"
-)
-
-zone_dyf = glueContext.create_dynamic_frame.from_options(
-    connection_type="s3",
-    connection_options={"paths": ["s3://nycfinalp/taxi_zone_lookup.csv"]},
-    format="csv",
-    format_options={"withHeader": True}
-)
-
-# Convert DynamicFrame to DataFrame
-master_df = master_dyf.toDF()
-zone_df = zone_dyf.toDF()
+master_df= spark.read.option("header", True).parquet("s3://nyc-raw-data-final/sample-raw/part-00000-60e2ed0e-8cef-4979-b1ab-4611568a9060-c000.snappy.parquet")
+zone_df = spark.read.option("header", True).csv("s3://nycfinalp/taxi_zone_lookup.csv")
 
 # Data transformations
 transformed_df = (master_df
-    # Filter by year (2019-2022)
-    .filter((year("tpep_pickup_datetime") >= 2019) & (year("tpep_pickup_datetime") <= 2022))
-    
+   # Filter out null & zero passenger_count and null & 99 RatecodeID
+    .filter((col("passenger_count").isNotNull()) & (col("passenger_count") != 0))
+    .filter((col("RatecodeID").isNotNull()) & (col("RatecodeID") != 99))
+
+  # Drop unused columns
+    .drop("store_and_fwd_flag", "airport_fee", "congestion_surcharge")
+     
     # Cast timestamp
     .withColumn("tpep_pickup_datetime", col("tpep_pickup_datetime").cast("timestamp"))
     
@@ -49,21 +39,15 @@ transformed_df = (master_df
     # Add day name
     .withColumn("day_name", date_format("tpep_pickup_datetime", "EEEE"))
     
-    # Filter out null or zero passenger_count
-    .filter((col("passenger_count").isNotNull()) & (col("passenger_count") != 0))
-    
     # Add time of day
     .withColumn("time_of_day",
                 when((hour(col("tpep_pickup_datetime")) >= 6) & (hour(col("tpep_pickup_datetime")) < 18), "Day")
                 .otherwise("Night"))
     
-    # Fill missing RatecodeID and cast types
-    .fillna({'RatecodeID': 99})
+    # cast types
+
     .withColumn("passenger_count", col("passenger_count").cast(IntegerType()))
     .withColumn("RatecodeID", col("RatecodeID").cast(IntegerType()))
-    
-    # Drop unused columns
-    .drop("store_and_fwd_flag", "airport_fee", "congestion_surcharge")
     
     # Join with zone lookup tables
     .join(zone_df.select(col("LocationID").alias("PULocationID"),
@@ -115,7 +99,6 @@ transformed_df = (master_df
                 .when(col("RatecodeID") == 4, "Nassau or Westchester")
                 .when(col("RatecodeID") == 5, "Negotiated fare")
                 .when(col("RatecodeID") == 6, "Group ride")
-                .when(col("RatecodeID") == 99, "Unknown")
                 .otherwise("Other"))
     
     # Map VendorID
@@ -130,18 +113,7 @@ transformed_df = (master_df
     .drop("service_zone")
 )
 
-# Convert back to DynamicFrame
-transformed_dyf = DynamicFrame.fromDF(transformed_df, glueContext, "transformed_dyf")
+transformed_df.write.mode("overwrite").partitionBy("year").parquet("s3://raw-data-grp-3/cleaned-data/transformeddata/")
 
-# Write output to S3
-glueContext.write_dynamic_frame.from_options(
-    frame=transformed_dyf,
-    connection_type="s3",
-    connection_options={"path": "s3://nycfinalp/testing-master-data/"},
-    format="parquet",
-    transformation_ctx="write_output",
-    format_options={"compression": "snappy"}
-)
-
-# Commit the job 
+# Commit the job
 job.commit()
