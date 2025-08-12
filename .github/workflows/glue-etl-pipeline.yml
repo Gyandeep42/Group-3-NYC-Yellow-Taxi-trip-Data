@@ -43,7 +43,7 @@ jobs:
         run: |
           terraform apply -auto-approve \
             -var "region=us-east-1" \
-            -var "bucket_name=third-glue-bkt-grp-three-nyc" \
+            -var "etl_bucket_name=third-glue-bkt-grp-three-nyc" \
             -var "glue_role_arn=arn:aws:iam::963702399712:role/LabRole" \
             -var "script_s3_path=s3://third-glue-bkt-grp-three-nyc/scripts/latest/etl-glue-script.py" \
             -var "raw_data_s3_path=s3://raw-data-grp-3/cleaned-data/transformeddata/"
