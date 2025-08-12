@@ -78,3 +78,5 @@ The project is designed for **data-driven decision-making** by the **NYC Governm
   - Run ETL jobs automatically
 
 ---
+
+![Architecture Diagram](Architecture Diagram.png)
