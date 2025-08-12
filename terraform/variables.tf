@@ -30,10 +30,11 @@ variable "etl_bucket_prefix" {
 }
 
 variable "glue_db_name" {
-  description = "Name of Glue Catalog database"
+  description = "Base name for the Glue Catalog Database"
   type        = string
   default     = "etl_database"
 }
+
 
 variable "glue_job_name" {
   description = "Name of Glue ETL Job"
