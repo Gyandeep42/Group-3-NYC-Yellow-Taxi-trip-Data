@@ -4,9 +4,10 @@ variable "region" {
 }
 
 # Hardcoded S3 bucket name for storing Glue script
-variable "bucket_name" {
+variable "etl_bucket_name" {
   default = "third-glue-bkt-grp-three-nyc"
 }
+
 
 # IAM Role ARN for Glue job & crawler
 variable "glue_role_arn" {
