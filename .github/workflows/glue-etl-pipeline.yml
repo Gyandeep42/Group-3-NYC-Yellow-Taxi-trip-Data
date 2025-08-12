@@ -36,9 +36,10 @@ jobs:
 
       - name: Terraform Validate
         working-directory: ./infra
-        run: terraform apply -auto-approve
+        run: terraform validate
 
       - name: Terraform Apply
+        working-directory: ./infra
         run: |
           terraform apply -auto-approve \
             -var "region=us-east-1" \
@@ -46,7 +47,6 @@ jobs:
             -var "glue_role_arn=arn:aws:iam::963702399712:role/LabRole" \
             -var "script_s3_path=s3://third-glue-bkt-grp-three-nyc/scripts/latest/etl-glue-script.py" \
             -var "raw_data_s3_path=s3://raw-data-grp-3/cleaned-data/transformeddata/"
-
 
   run-etl:
     needs: infra-deploy
@@ -81,6 +81,7 @@ jobs:
           JOB_RUN_ID=$(aws glue start-job-run --job-name ${{ env.ETL_JOB_NAME }} --query 'JobRunId' --output text)
           echo "ETL JobRunId: $JOB_RUN_ID"
           echo "job_run_id=$JOB_RUN_ID" >> $GITHUB_OUTPUT
+
       - name: Wait for ETL Job Completion
         run: |
           JOB_RUN_ID=${{ steps.start_etl.outputs.job_run_id }}
@@ -96,6 +97,6 @@ jobs:
             fi
             sleep 30
           done
+
       - name: Start Glue Crawler
         run: aws glue start-crawler --name ${{ env.CRAWLER_NAME }}
-#
