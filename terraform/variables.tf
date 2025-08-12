@@ -47,7 +47,4 @@ variable "glue_crawler_name" {
   default     = "etl-crawler"
 }
 
-variable "glue_script_s3_path" {
-  description = "S3 path to Glue ETL script"
-  type        = string
-}
+
