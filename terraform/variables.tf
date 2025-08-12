@@ -31,7 +31,7 @@ variable "glue_crawler_name" {
 variable "glue_role_arn" {
   description = "IAM Role ARN for Glue to access resources"
   type        = string
-  default     = "arn:aws:iam::YOUR_ACCOUNT_ID:role/LabRole"
+  default     = "arn:aws:iam::914016866997:role/LabRole"
 }
 
 variable "script_s3_key" {
