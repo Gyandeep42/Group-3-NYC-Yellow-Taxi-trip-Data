@@ -1,0 +1,85 @@
+# Initialize SparkSession
+from pyspark.sql import SparkSession
+
+spark = SparkSession.builder \
+    .appName("NYC Yellow Taxi 2017, 2021, and 2023 ETL") \
+    .getOrCreate()
+
+
+
+
+
+s3_path_2017 = "s3://nyc-2017-2021/merged/yellow_tripdata_2017_full.parquet/part-00000-c894f012-d882-46d9-b0a0-62c479c68996-c000.snappy.parquet"
+s3_path_2021 = "s3://nyc-2017-2021/merged/yellow_tripdata_2021_full.parquet/part-00000-035659d3-641a-4d13-8629-d7e3438df48e-c000.snappy.parquet"
+s3_path_2023 = "s3://nyc-2017-2021/merged/yellow_tripdata_2023_full.parquet/part-00000-e626925e-da1b-4749-b265-1f19ea9db09f-c000.snappy.parquet"
+
+
+# Read the 2017 Parquet file into a DataFrame
+df_2017 = spark.read.parquet(s3_path_2017)
+
+# Read the 2021 Parquet file into a DataFrame
+df_2021 = spark.read.parquet(s3_path_2021)
+
+# Read the 2023 Parquet file into a DataFrame
+df_2023 = spark.read.parquet(s3_path_2023)
+
+
+print("2017 Data Schema:")
+df_2017.printSchema()
+print("2017 Sample Data:")
+df_2017.show(5)
+
+
+print("2021 Data Schema:")
+df_2021.printSchema()
+print("2021 Sample Data:")
+df_2021.show(5)
+
+
+print("2023 Data Schema:")
+df_2023.printSchema()
+print("2023 Sample Data:")
+df_2023.show(5)
+
+s3_paths = {
+    "2016": "s3://project-nyc-2023/nyc-taxi-2022-2016/2016/merged/yellow_tripdata_2016_full.parquet/part-00000-e645e24f-94d2-4acb-850a-8550e66ea0ef-c000.snappy.parquet",
+    "2017": "s3://nyc-2017-2021/merged/yellow_tripdata_2017_full.parquet/part-00000-c894f012-d882-46d9-b0a0-62c479c68996-c000.snappy.parquet",
+    "2021": "s3://nyc-2017-2021/merged/yellow_tripdata_2021_full.parquet/part-00000-035659d3-641a-4d13-8629-d7e3438df48e-c000.snappy.parquet"
+}
+
+from pyspark.sql.functions import col
+
+
+
+df_2017 = spark.read.parquet("s3://nyc-2017-2021/merged/yellow_tripdata_2017_full.parquet/part-00000-c894f012-d882-46d9-b0a0-62c479c68996-c000.snappy.parquet")
+print("\n2017 Dataset - Null Counts:")
+for col_name in df_2017.columns:
+    null_count = df_2017.filter(col(col_name).isNull()).count()
+    print(f"Column '{col_name}': {null_count} nulls")
+
+
+
+
+df_2021 = spark.read.parquet("s3://nyc-2017-2021/merged/yellow_tripdata_2021_full.parquet/part-00000-035659d3-641a-4d13-8629-d7e3438df48e-c000.snappy.parquet")
+print("\n2021 Dataset - Null Counts:")
+for col_name in df_2021.columns:
+    null_count = df_2021.filter(col(col_name).isNull()).count()
+    print(f"Column '{col_name}': {null_count} nulls")
+
+
+
+df_2023 = spark.read.parquet("s3://nyc-2017-2021/merged/yellow_tripdata_2023_full.parquet/part-00000-e626925e-da1b-4749-b265-1f19ea9db09f-c000.snappy.parquet")
+print("\n2023 Dataset - Null Counts:")
+for col_name in df_2023.columns:
+    null_count = df_2023.filter(col(col_name).isNull()).count()
+    print(f"Column '{col_name}': {null_count} nulls")
+
+
+
+count_2017 = df_2017.count()
+count_2021 = df_2021.count()
+count_2023 = df_2023.count()
+
+print(f"2017 Row Count: {count_2017}")
+print(f"2021 Row Count: {count_2021}")
+print(f"2023 Row Count: {count_2023}")

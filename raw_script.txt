@@ -1,0 +1,176 @@
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import lit,col,sum, when, expr, to_date, date_format,year, dayofmonth, floor, row_number
+from pyspark.sql.types import IntegerType
+
+spark = SparkSession.builder.appName("MasterNYCdata").getOrCreate()
+
+master_df= spark.read.parquet("s3://nycfinalp/final-merged-copy/part-00000-a9b37a2c-b51f-4a69-9db2-bffec381dc6c-c000.snappy.parquet")
+master_df.show(5)
+
+master_df = master_df.filter(
+(year("tpep_pickup_datetime") >= 2019) & (year("tpep_pickup_datetime") <= 2022)
+)
+
+master_df = master_df.withColumn("tpep_pickup_datetime", col("tpep_pickup_datetime").cast("timestamp"))
+
+master_df = master_df.withColumn(
+"week_of_month",
+(floor((dayofmonth("tpep_pickup_datetime") - 1) / 7) + 1).cast("int")
+)
+
+
+master_df = master_df.withColumn(
+"day_name",
+date_format("tpep_pickup_datetime", "EEEE")
+)
+
+
+master_df = master_df.filter((col("passenger_count").isNotNull()) & (col("passenger_count") != 0))
+
+master_df = master_df.withColumn(
+"time_of_day",
+when((hour(col("tpep_pickup_datetime")) >= 6) & (hour(col("tpep_pickup_datetime")) < 18), "Day")
+.otherwise("Night")
+)
+
+master_df.filter(col("RatecodeID").isNull()).count()
+
+master_df.select("RatecodeID").distinct().orderBy("RatecodeID").show()
+
+master_df = master_df.fillna({'RatecodeID': 99})
+
+master_df.filter(col("RatecodeID").isNull()).count()  
+
+master_df.select("RatecodeID").distinct().orderBy("RatecodeID").show()
+
+master_df.groupBy("RatecodeID").count().orderBy("RatecodeID").show()
+
+master_df = master_df.withColumn("passenger_count", col("passenger_count").cast(IntegerType()))
+master_df = master_df.withColumn("RatecodeID", col("RatecodeID").cast(IntegerType()))
+
+master_df = master_df.drop("store_and_fwd_flag", "airport_fee", "congestion_surcharge")
+
+null_counts = master_df.select([
+    sum(when(col(c).isNull(), 1).otherwise(0)).alias(c) for c in master_df.columns
+])
+
+spark = SparkSession.builder.appName("TaxiZoneLookup").getOrCreate()
+
+# Path to the zone lookup file in S3
+zone_lookup_path = "s3://nycfinalp/taxi_zone_lookup.csv"
+
+# Read the CSV file from S3
+zone_df = spark.read.option("header", True).csv(zone_lookup_path)
+
+# Create renamed DataFrames for joining
+pickup_zone_df = zone_df.select(
+col("LocationID").alias("PULocationID"),
+col("Zone").alias("pickup_zone"),
+col("Borough").alias("pickup_borough")
+)
+dropoff_zone_df = zone_df.select(
+col("LocationID").alias("DOLocationID"),
+col("Zone").alias("dropoff_zone"),
+col("Borough").alias("dropoff_borough")
+)
+
+mapped_df = master_df
+.join(pickup_zone_df, on="PULocationID", how="left")
+.join(dropoff_zone_df, on="DOLocationID", how="left")
+
+
+window_spec = Window.orderBy(lit(1))
+master_df = mapped_df.withColumn("Id", row_number().over(window_spec))
+
+
+master_with_zones = master_with_zones.withColumn(
+    "tip_percentage",
+    when(col("fare_amount") > 0, (col("tip_amount") / col("fare_amount")) * 100).otherwise(0)
+
+cleaned_df = master_with_zones.filter(
+    (col("trip_distance") <= 100) & (col("fare_amount") <= 500)
+)
+
+bucketed_df = cleaned_df.withColumn(
+    "distance_bucket",
+    when(col("trip_distance") < 1, "0-1 miles")
+    .when((col("trip_distance") >= 1) & (col("trip_distance") < 5), "1-5 miles")
+    .when((col("trip_distance") >= 5) & (col("trip_distance") < 10), "5-10 miles")
+    .otherwise("10+ miles")
+)
+
+mapped_df = bucketed_df.withColumn(
+    "payment_type_desc",
+    expr("""
+        CASE payment_type
+            WHEN 1 THEN 'Credit Card'
+            WHEN 2 THEN 'Cash'
+            WHEN 3 THEN 'No Charge'
+            WHEN 4 THEN 'Dispute'
+            WHEN 5 THEN 'Unknown'
+            WHEN 6 THEN 'Voided'
+            ELSE 'Other'
+        END
+    """)
+)
+
+mapped_df = mapped_df.withColumn(
+    "ratecode_desc",
+    when(col("RatecodeID") == 1, "Standard rate")
+    .when(col("RatecodeID") == 2, "JFK")
+    .when(col("RatecodeID") == 3, "Newark")
+    .when(col("RatecodeID") == 4, "Nassau or Westchester")
+    .when(col("RatecodeID") == 5, "Negotiated fare")
+    .when(col("RatecodeID") == 6, "Group ride")
+    .when(col("RatecodeID") == 99, "Unknown")
+    .otherwise("Other")
+)
+
+mapped_df = mapped_df.withColumn(
+    "vendor_desc",
+    when(col("VendorID") == 1, "Creative Mobile Technologies, LLC")
+    .when(col("VendorID") == 2, "Curb Mobility, LLC")
+    .when(col("VendorID") == 6, "Myle Technologies Inc")
+    .when(col("VendorID") == 7, "Helix")
+    .when(col("VendorID").isin(3,4,5), "Third Party")
+)
+
+
+mapped_df = mapped_df.drop("service_zone").drop("borough")
+
+
+mapped_df.coalesce(1).write.mode("overwrite").parquet("s3://nycfinalp/testing-master-data/")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
