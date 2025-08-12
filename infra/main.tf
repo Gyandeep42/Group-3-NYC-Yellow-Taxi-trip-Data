@@ -1,6 +1,6 @@
 locals {
-  # Hardcoded bucket name
-  etl_bucket_name = "third-glue-bkt-grp-three-nyc"
+  # Use the bucket name from variables.tf
+  etl_bucket_name = var.etl_bucket_name
 
   # Generate timestamp
   timestamp = formatdate("YYYYMMDDhhmmss", timestamp())
@@ -13,10 +13,7 @@ locals {
   glue_role_arn = "arn:aws:iam::963702399712:role/LabRole"
 }
 
-# Create S3 bucket only if it doesn't exist
-resource "aws_s3_bucket" "etl_bucket" {
-  bucket = local.etl_bucket_name
-}
+# ✅ Removed aws_s3_bucket creation — assumes bucket already exists
 
 resource "aws_glue_catalog_database" "etl_db" {
   name = local.glue_db_name
@@ -28,7 +25,6 @@ resource "aws_glue_job" "etl_job" {
 
   command {
     name            = "glueetl"
-    # Script path will be handled in GitHub Actions logic
     script_location = "s3://${local.etl_bucket_name}/scripts/latest/etl-glue-script.py"
     python_version  = "3"
   }

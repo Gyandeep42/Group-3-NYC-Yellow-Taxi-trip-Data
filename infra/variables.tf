@@ -1,26 +1,24 @@
-#declare a region
+# AWS region
 variable "region" {
   default = "us-east-1"
 }
 
-#declare a bucket name
-variable "bucket_name_prefix" {
+# Hardcoded S3 bucket name for storing Glue script
+variable "bucket_name" {
   default = "third-glue-bkt-grp-three-nyc"
 }
 
-
-#declare a glue job name
-variable "glue_job_name" {
-  default = "glue-etl-job"
+# IAM Role ARN for Glue job & crawler
+variable "glue_role_arn" {
+  default = "arn:aws:iam::963702399712:role/LabRole"
 }
 
-#declare a crawler name
-variable "glue_crawler_name" {
-  default = "my-etl-crawler"
-}
-
-#declare a script path
+# Script S3 path (latest version will be handled by GitHub Actions)
 variable "script_s3_path" {
-  default = "s3://third-glue-bkt-grp-three-nyc/scripts/etl-glue-script.py"
+  default = "s3://third-glue-bkt-grp-three-nyc/scripts/latest/etl-glue-script.py"
 }
-#try
+
+# Raw data location for Glue Crawler
+variable "raw_data_s3_path" {
+  default = "s3://raw-data-grp-3/cleaned-data/transformeddata/"
+}
