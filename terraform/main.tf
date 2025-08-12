@@ -16,9 +16,9 @@ resource "aws_glue_catalog_database" "this" {
 
 # Glue ETL Job
 resource "aws_glue_job" "this" {
-  name     = var.glue_job_name
+  name     = "glue-etl-job-v2" # Changed to avoid name conflict
   role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/LabRole"
-
+  
   command {
     name            = "glueetl"
     script_location = var.glue_script_s3_path
