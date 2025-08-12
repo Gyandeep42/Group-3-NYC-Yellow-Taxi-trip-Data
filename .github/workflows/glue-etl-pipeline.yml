@@ -57,10 +57,18 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Upload ETL Script to S3
+      - name: Upload ETL Script to S3 with new folder
         run: |
-          aws s3 cp ${{ env.SCRIPT_PATH }} s3://${{ env.S3_BUCKET }}/scripts/etl-glue-script.py
-          echo "ETL script uploaded to S3."
+          BUCKET_NAME="third-glue-bkt-grp-three-nyc"
+          PREFIX="scripts/run"
+          COUNT=1
+          while aws s3 ls s3://$BUCKET_NAME/${PREFIX}${COUNT}/ > /dev/null 2>&1; do
+            COUNT=$((COUNT+1))
+          done
+          FOLDER="${PREFIX}${COUNT}"
+          aws s3 cp ${{ env.SCRIPT_PATH }} s3://$BUCKET_NAME/$FOLDER/etl-glue-script.py
+          echo "Script uploaded to s3://$BUCKET_NAME/$FOLDER/"
+
       - name: Start Glue ETL Job
         id: start_etl
         run: |
