@@ -31,12 +31,12 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init
-        working-directory: infra
+        working-directory: ./infra
         run: terraform init
 
       - name: Terraform Validate
-        working-directory: infra
-        run: terraform validate
+        working-directory: ./infra
+        run: terraform apply -auto-approve
 
       - name: Terraform Apply
         run: |
