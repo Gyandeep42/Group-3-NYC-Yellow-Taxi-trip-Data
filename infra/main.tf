@@ -1,25 +1,18 @@
 locals {
-  # Use the bucket name from variables.tf
-  etl_bucket_name = var.etl_bucket_name
+  etl_bucket_name    = var.etl_bucket_name
+  timestamp          = formatdate("YYYYMMDDhhmmss", timestamp())
 
-  # Generate timestamp
-  timestamp = formatdate("YYYYMMDDhhmmss", timestamp())
-
-  # Auto-generated names for resources
   glue_job_name      = "nyc-yellow-taxi-data-${local.timestamp}"
   glue_db_name       = "nyc-yellow-taxi-data-${local.timestamp}-db"
   glue_crawler_name  = "nyc-yellow-taxi-data-${local.timestamp}-crawler"
-  glue_workflow_name = "nyc-yellow-taxi-data-${local.timestamp}-workflow"
 
-  glue_role_arn = "arn:aws:iam::963702399712:role/LabRole"
+  glue_role_arn      = "arn:aws:iam::963702399712:role/LabRole"
 }
 
-# Glue Database
 resource "aws_glue_catalog_database" "etl_db" {
   name = local.glue_db_name
 }
 
-# Glue Job
 resource "aws_glue_job" "etl_job" {
   name     = local.glue_job_name
   role_arn = local.glue_role_arn
@@ -35,7 +28,6 @@ resource "aws_glue_job" "etl_job" {
   worker_type       = "G.1X"
 }
 
-# Glue Crawler
 resource "aws_glue_crawler" "etl_crawler" {
   name          = local.glue_crawler_name
   role          = local.glue_role_arn
@@ -44,29 +36,24 @@ resource "aws_glue_crawler" "etl_crawler" {
   s3_target {
     path = "s3://raw-data-grp-3/cleaned-data/transformeddata/"
   }
+
+  depends_on = [aws_glue_job.etl_job]
 }
 
-# Glue Workflow
-resource "aws_glue_workflow" "etl_workflow" {
-  name = local.glue_workflow_name
-}
-
-# Trigger to start job when workflow runs
+# ✅ Trigger to start ETL Job on demand (or can make it scheduled)
 resource "aws_glue_trigger" "start_etl_job" {
-  name     = "trigger-job-${local.timestamp}"
-  type     = "WORKFLOW"
-  workflow_name = aws_glue_workflow.etl_workflow.name
+  name     = "start-etl-job-${local.timestamp}"
+  type     = "ON_DEMAND"
 
   actions {
     job_name = aws_glue_job.etl_job.name
   }
 }
 
-# Trigger to start crawler after job completes
+# ✅ Trigger to start crawler after ETL job finishes successfully
 resource "aws_glue_trigger" "start_crawler_after_job" {
-  name     = "trigger-crawler-${local.timestamp}"
+  name     = "start-crawler-after-job-${local.timestamp}"
   type     = "CONDITIONAL"
-  workflow_name = aws_glue_workflow.etl_workflow.name
 
   predicate {
     conditions {
@@ -78,4 +65,6 @@ resource "aws_glue_trigger" "start_crawler_after_job" {
   actions {
     crawler_name = aws_glue_crawler.etl_crawler.name
   }
+
+  depends_on = [aws_glue_trigger.start_etl_job]
 }
