@@ -18,7 +18,7 @@ spark = glueContext.spark_session
 job = Job(glueContext)
 job.init(args['JOB_NAME'], args)
 
-master_df= spark.read.option("header", True).parquet("s3://nyc-raw-data-final/sample-raw/part-00000-60e2ed0e-8cef-4979-b1ab-4611568a9060-c000.snappy.parquet")
+master_df= spark.read.option("header", True).parquet("s3://datalake-grp-03/nyc-merged-raw-data/part-00000-a7fd998c-ac15-4237-b9b0-684f953b2375-c000.snappy.parquet")
 zone_df = spark.read.option("header", True).csv("s3://nycfinalp/taxi_zone_lookup.csv")
 
 # Data transformations
