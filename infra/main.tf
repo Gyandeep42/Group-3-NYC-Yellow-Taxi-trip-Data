@@ -1,23 +1,25 @@
+locals {
+  etl_bucket_name    = var.etl_bucket_name
+  timestamp          = formatdate("YYYYMMDDhhmmss", timestamp())
 
-resource "aws_s3_bucket" "etl_bucket" {
-  bucket = var.bucket_name_prefix
+  glue_job_name      = "nyc-yellow-taxi-data-${local.timestamp}"
+  glue_db_name       = "nyc-yellow-taxi-data-${local.timestamp}-db"
+  glue_crawler_name  = "nyc-yellow-taxi-data-${local.timestamp}-crawler"
+
+  glue_role_arn      = "arn:aws:iam::963702399712:role/LabRole"
 }
 
 resource "aws_glue_catalog_database" "etl_db" {
-  name = "nyc-taxi-trip_db"
-}
-
-locals {
-  glue_role_arn = "arn:aws:iam::963702399712:role/LabRole"
+  name = local.glue_db_name
 }
 
 resource "aws_glue_job" "etl_job" {
-  name     = var.glue_job_name
+  name     = local.glue_job_name
   role_arn = local.glue_role_arn
 
   command {
     name            = "glueetl"
-    script_location = var.script_s3_path
+    script_location = "s3://${local.etl_bucket_name}/scripts/latest/etl-glue-script.py"
     python_version  = "3"
   }
 
@@ -27,7 +29,7 @@ resource "aws_glue_job" "etl_job" {
 }
 
 resource "aws_glue_crawler" "etl_crawler" {
-  name          = var.glue_crawler_name
+  name          = local.glue_crawler_name
   role          = local.glue_role_arn
   database_name = aws_glue_catalog_database.etl_db.name
 
@@ -36,4 +38,33 @@ resource "aws_glue_crawler" "etl_crawler" {
   }
 
   depends_on = [aws_glue_job.etl_job]
+}
+
+# ✅ Trigger to start ETL Job on demand (or can make it scheduled)
+resource "aws_glue_trigger" "start_etl_job" {
+  name     = "start-etl-job-${local.timestamp}"
+  type     = "ON_DEMAND"
+
+  actions {
+    job_name = aws_glue_job.etl_job.name
+  }
+}
+
+# ✅ Trigger to start crawler after ETL job finishes successfully
+resource "aws_glue_trigger" "start_crawler_after_job" {
+  name     = "start-crawler-after-job-${local.timestamp}"
+  type     = "CONDITIONAL"
+
+  predicate {
+    conditions {
+      job_name = aws_glue_job.etl_job.name
+      state    = "SUCCEEDED"
+    }
+  }
+
+  actions {
+    crawler_name = aws_glue_crawler.etl_crawler.name
+  }
+
+  depends_on = [aws_glue_trigger.start_etl_job]
 }
