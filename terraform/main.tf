@@ -1,63 +1,46 @@
+# Random ID to make bucket name unique
 resource "random_id" "bucket_id" {
   byte_length = 4
 }
 
+# S3 Bucket for ETL data
 resource "aws_s3_bucket" "etl_bucket" {
-  bucket = var.etl_bucket_name
+  bucket        = "${var.etl_bucket_prefix}-${random_id.bucket_id.hex}"
+  force_destroy = true
 }
 
-resource "aws_s3_bucket_policy" "glue_access" {
-  bucket = aws_s3_bucket.etl_bucket.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid       = "AllowGlueReadWrite"
-        Effect    = "Allow"
-        Principal = {
-          AWS = var.glue_role_arn
-        }
-        Action = [
-          "s3:GetObject",
-          "s3:PutObject",
-          "s3:DeleteObject",
-          "s3:ListBucket"
-        ]
-        Resource = [
-          "${aws_s3_bucket.etl_bucket.arn}/*",
-          aws_s3_bucket.etl_bucket.arn
-        ]
-      }
-    ]
-  })
-}
-
-resource "aws_glue_catalog_database" "etl_db" {
+# Glue Catalog Database
+resource "aws_glue_catalog_database" "this" {
   name = var.glue_db_name
 }
 
-resource "aws_glue_job" "etl_job" {
+# Glue ETL Job
+resource "aws_glue_job" "this" {
   name     = var.glue_job_name
-  role_arn = var.glue_role_arn
+  role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/LabRole"
 
   command {
     name            = "glueetl"
-    script_location = "s3://${aws_s3_bucket.etl_bucket.bucket}/etl/etl-glue-script.py"
+    script_location = var.glue_script_s3_path
     python_version  = "3"
   }
 
-  default_arguments = {
-    "--TempDir" = "s3://${aws_s3_bucket.etl_bucket.bucket}/temp/"
-  }
+  max_retries       = 1
+  glue_version      = "3.0"
+  worker_type       = "G.1X"
+  number_of_workers = 2
 }
 
-resource "aws_glue_crawler" "etl_crawler" {
-  name         = var.glue_crawler_name
-  role         = var.glue_role_arn
-  database_name = aws_glue_catalog_database.etl_db.name
+# Glue Crawler
+resource "aws_glue_crawler" "this" {
+  name          = var.glue_crawler_name
+  role          = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/LabRole"
+  database_name = aws_glue_catalog_database.this.name
 
   s3_target {
     path = "s3://${aws_s3_bucket.etl_bucket.bucket}/"
   }
 }
+
+# Get current AWS account ID
+data "aws_caller_identity" "current" {}
