@@ -4,32 +4,50 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
-variable "bucket_name" {
-  description = "Name of the S3 bucket for ETL scripts and data"
-  type        = string
+variable "create_bucket" {
+  description = "If true Terraform will create the S3 bucket. If false, it will use existing_bucket_name"
+  type        = bool
+  default     = true
 }
 
-variable "glue_db_name" {
-  description = "Name of the Glue database"
+variable "existing_bucket_name" {
+  description = "Name of existing S3 bucket to use when create_bucket = false"
   type        = string
+  default     = ""
 }
 
-variable "glue_job_name" {
-  description = "Name of the Glue ETL job"
+variable "bucket_name_prefix" {
+  description = "Prefix for S3 bucket name when create_bucket = true"
   type        = string
+  default     = "my-etl-bucket-pranav"
 }
 
-variable "glue_crawler_name" {
-  description = "Name of the Glue crawler"
+variable "glue_db_name_prefix" {
+  description = "Glue database name prefix"
   type        = string
+  default     = "my_etl_db"
 }
 
-variable "glue_script_s3_path" {
-  description = "S3 path of the Glue ETL script"
+variable "glue_job_name_prefix" {
+  description = "Glue job name prefix"
   type        = string
+  default     = "glue-etl-job"
+}
+
+variable "glue_crawler_name_prefix" {
+  description = "Glue crawler name prefix"
+  type        = string
+  default     = "my-etl-crawler"
 }
 
 variable "glue_role_arn" {
-  description = "IAM role ARN for Glue job and crawler"
+  description = "IAM Role ARN for Glue to assume (must exist with proper permissions)"
   type        = string
+  default     = "arn:aws:iam::YOUR_ACCOUNT_ID:role/LabRole"
+}
+
+variable "local_script_path" {
+  description = "Local path of the Glue script to upload"
+  type        = string
+  default     = "etl/etl-glue-script.py"
 }
