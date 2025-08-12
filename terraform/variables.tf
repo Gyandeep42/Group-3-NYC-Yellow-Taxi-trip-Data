@@ -1,41 +1,35 @@
-variable "region" {
-  description = "AWS region to deploy resources"
+variable "aws_region" {
+  description = "AWS region where resources will be created"
   type        = string
   default     = "us-east-1"
 }
 
-variable "etl_bucket_name" {
+variable "bucket_name" {
   description = "Name of the S3 bucket for ETL scripts and data"
   type        = string
-  default     = "my-etl-bucket-pranav"
 }
 
 variable "glue_db_name" {
-  description = "Name of the Glue Catalog Database"
+  description = "Name of the Glue database"
   type        = string
-  default     = "my_etl_db"
 }
 
 variable "glue_job_name" {
-  description = "Name of the AWS Glue ETL Job"
+  description = "Name of the Glue ETL job"
   type        = string
-  default     = "glue-etl-job"
 }
 
 variable "glue_crawler_name" {
-  description = "Name of the AWS Glue Crawler"
+  description = "Name of the Glue crawler"
   type        = string
-  default     = "my-etl-crawler"
+}
+
+variable "glue_script_s3_path" {
+  description = "S3 path of the Glue ETL script"
+  type        = string
 }
 
 variable "glue_role_arn" {
-  description = "IAM Role ARN for Glue to access resources"
+  description = "IAM role ARN for Glue job and crawler"
   type        = string
-  default     = "arn:aws:iam::914016866997:role/LabRole"
-}
-
-variable "script_s3_key" {
-  description = "S3 key (path) for the Glue ETL script"
-  type        = string
-  default     = "scripts/etl-glue-script.py"
 }
