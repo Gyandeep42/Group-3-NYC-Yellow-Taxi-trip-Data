@@ -11,8 +11,9 @@ resource "aws_s3_bucket" "etl_bucket" {
 
 # Glue Catalog Database
 resource "aws_glue_catalog_database" "this" {
-  name = "${var.glue_db_name}-${replace(timestamp(), ":", "-")}"
+  name = lower(replace(replace("${var.glue_db_name}-${timestamp()}", "[:TZ]", "-"), "[^a-z0-9-_]", ""))
 }
+
 
 
 # Glue ETL Job
