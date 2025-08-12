@@ -1,50 +1,50 @@
-# Random ID to make bucket name unique
-resource "random_id" "bucket_id" {
-  byte_length = 4
+resource "aws_s3_bucket" "my_bucket" {
+  bucket = var.bucket_name
+
+  tags = {
+    Name        = var.bucket_name
+    Environment = "Dev"
+  }
 }
 
-# S3 Bucket for ETL data
-resource "aws_s3_bucket" "etl_bucket" {
-  bucket        = "${var.etl_bucket_prefix}-${random_id.bucket_id.hex}"
-  force_destroy = true
+# Create dynamic folder in same bucket
+resource "aws_s3_object" "script_upload" {
+  bucket = aws_s3_bucket.my_bucket.bucket
+  key    = "scripts/${formatdate("YYYYMMDD-HHmmss", timestamp())}/etl-glue-script.py"
+  source = var.script_path
 }
 
-# Glue Catalog Database
+# Glue Database (new every time with timestamp)
 resource "aws_glue_catalog_database" "this" {
-  name = lower(
-    "${var.glue_db_name}-${replace(replace(replace(timestamp(), "[:TZ]", "-"), "[^a-z0-9-_]", ""), "--", "-")}"
-  )
+  name = "${lower(var.glue_db_name)}_${replace(formatdate("YYYYMMDD_HHmmss", timestamp()), "-", "_")}"
 }
 
-
-
-# Glue ETL Job
+# Glue Job (new every time)
 resource "aws_glue_job" "this" {
-  name     = "glue-etl-job-v2" # Changed to avoid name conflict
-  role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/LabRole"
-  
+  name     = "${var.glue_job_name}_${replace(formatdate("YYYYMMDD_HHmmss", timestamp()), "-", "_")}"
+  role_arn = "arn:aws:iam::914016866997:role/LabRole"
+
   command {
     name            = "glueetl"
-    script_location = var.glue_script_s3_path
+    script_location = "s3://${aws_s3_bucket.my_bucket.bucket}/${aws_s3_object.script_upload.key}"
     python_version  = "3"
   }
 
-  max_retries       = 1
-  glue_version      = "3.0"
-  worker_type       = "G.1X"
-  number_of_workers = 2
+  default_arguments = {
+    "--job-language" = "python"
+    "--enable-continuous-cloudwatch-log" = "true"
+  }
+
+  glue_version = "4.0"
 }
 
-# Glue Crawler
+# Glue Crawler (new every time)
 resource "aws_glue_crawler" "this" {
-  name          = var.glue_crawler_name
-  role          = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/LabRole"
+  name          = "${var.crawler_name}_${replace(formatdate("YYYYMMDD_HHmmss", timestamp()), "-", "_")}"
+  role          = "arn:aws:iam::914016866997:role/LabRole"
   database_name = aws_glue_catalog_database.this.name
 
   s3_target {
-    path = "s3://${aws_s3_bucket.etl_bucket.bucket}/"
+    path = "s3://${aws_s3_bucket.my_bucket.bucket}/data/"
   }
 }
-
-# Get current AWS account ID
-data "aws_caller_identity" "current" {}
