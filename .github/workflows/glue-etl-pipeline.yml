@@ -99,6 +99,7 @@ jobs:
           done
 
       - name: Get Terraform outputs
+        working-directory: ./infra
         run: |
           CRAWLER_NAME=$(terraform output -raw crawler_name)
           echo "CRAWLER_NAME=$CRAWLER_NAME" >> $GITHUB_ENV
