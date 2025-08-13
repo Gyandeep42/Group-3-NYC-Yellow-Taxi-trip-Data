@@ -11,6 +11,7 @@ env:
   S3_BUCKET: third-glue-bkt-grp-three-nyc
   ETL_JOB_NAME: glue-etl-job
   CRAWLER_NAME: my-etl-crawler
+  TIMESTAMP: ${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}
 
 jobs:
   infra-deploy:
@@ -40,7 +41,10 @@ jobs:
 
       - name: Terraform Apply
         working-directory: infra
-        run: terraform apply -auto-approve
+        run: |
+          terraform apply -auto-approve \
+            -var="aws_account_id=${{ secrets.AWS_ACCOUNT_ID }}" \
+            -var="timestamp=$(date +'%Y-%m-%d-%H-%M-%S')"
 
   run-etl:
     needs: infra-deploy
@@ -61,17 +65,21 @@ jobs:
         run: |
           aws s3 cp ${{ env.SCRIPT_PATH }} s3://${{ env.S3_BUCKET }}/scripts/etl-glue-script.py
           echo "ETL script uploaded to S3."
+
       - name: Start Glue ETL Job
         id: start_etl
         run: |
-          JOB_RUN_ID=$(aws glue start-job-run --job-name ${{ env.ETL_JOB_NAME }} --query 'JobRunId' --output text)
+          JOB_NAME=$(aws glue get-jobs --query "Jobs[?starts_with(Name, '${{ env.ETL_JOB_NAME }}')].Name" --output text | tail -n 1)
+          JOB_RUN_ID=$(aws glue start-job-run --job-name "$JOB_NAME" --query 'JobRunId' --output text)
           echo "ETL JobRunId: $JOB_RUN_ID"
           echo "job_run_id=$JOB_RUN_ID" >> $GITHUB_OUTPUT
+
       - name: Wait for ETL Job Completion
         run: |
           JOB_RUN_ID=${{ steps.start_etl.outputs.job_run_id }}
+          JOB_NAME=$(aws glue get-jobs --query "Jobs[?starts_with(Name, '${{ env.ETL_JOB_NAME }}')].Name" --output text | tail -n 1)
           while true; do
-            STATUS=$(aws glue get-job-run --job-name ${{ env.ETL_JOB_NAME }} --run-id "$JOB_RUN_ID" --query 'JobRun.JobRunState' --output text)
+            STATUS=$(aws glue get-job-run --job-name "$JOB_NAME" --run-id "$JOB_RUN_ID" --query 'JobRun.JobRunState' --output text)
             echo "Current ETL job status: $STATUS"
             if [ "$STATUS" == "SUCCEEDED" ]; then
               echo "ETL Job completed successfully."
@@ -82,6 +90,8 @@ jobs:
             fi
             sleep 30
           done
+
       - name: Start Glue Crawler
-        run: aws glue start-crawler --name ${{ env.CRAWLER_NAME }}
-#rjevejvnfdljjnijjewdhkjjhghjdfjdehtdut
+        run: |
+          CRAWLER_NAME=$(aws glue get-crawlers --query "Crawlers[?starts_with(Name, '${{ env.CRAWLER_NAME }}')].Name" --output text | tail -n 1)
+          aws glue start-crawler --name "$CRAWLER_NAME"

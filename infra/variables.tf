@@ -1,26 +1,24 @@
-#declare a region
+# Region
 variable "region" {
   default = "us-east-1"
 }
 
-#declare a bucket name
+# Bucket name prefix (keep fixed so it can be reused)
 variable "bucket_name_prefix" {
   default = "third-glue-bkt-grp-three-nyc"
 }
 
-
-#declare a glue job name
+# Glue job base name
 variable "glue_job_name" {
   default = "glue-etl-job"
 }
 
-#declare a crawler name
+# Crawler base name
 variable "glue_crawler_name" {
   default = "my-etl-crawler"
 }
 
-#declare a script path
+# Script S3 path
 variable "script_s3_path" {
   default = "s3://third-glue-bkt-grp-three-nyc/scripts/etl-glue-script.py"
 }
-#try
