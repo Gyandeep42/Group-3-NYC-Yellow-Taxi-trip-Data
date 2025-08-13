@@ -40,7 +40,7 @@ resource "aws_glue_crawler" "etl_crawler" {
   depends_on = [aws_glue_job.etl_job]
 }
 
-# ✅ Trigger to start ETL Job on demand (or can make it scheduled)
+# Trigger to start ETL Job on demand (or can make it scheduled)
 resource "aws_glue_trigger" "start_etl_job" {
   name     = "start-etl-job-${local.timestamp}"
   type     = "ON_DEMAND"
@@ -50,7 +50,7 @@ resource "aws_glue_trigger" "start_etl_job" {
   }
 }
 
-# ✅ Trigger to start crawler after ETL job finishes successfully
+# Trigger to start crawler after ETL job finishes successfully
 resource "aws_glue_trigger" "start_crawler_after_job" {
   name     = "start-crawler-after-job-${local.timestamp}"
   type     = "CONDITIONAL"
