@@ -21,7 +21,7 @@ variable "glue_crawler_name" {
 
 # Get the bucket name that matches the prefix
 data "aws_s3_bucket" "script_bucket" {
-  bucket = "${var.bucket_name_prefix}-pnv21f" # Or dynamically fetched
+  bucket = "${var.bucket_name_prefix}" # Or dynamically fetched
 }
 
 # Build the script path dynamically from actual bucket
