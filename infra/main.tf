@@ -1,66 +1,113 @@
-variable "aws_account_id" {
-  description = "AWS Account ID from GitHub Actions"
-  type        = string
+resource "random_string" "suffix" {
+  length  = 6
+  upper   = false
+  special = false
 }
 
-variable "timestamp" {
-  description = "Deployment timestamp"
-  type        = string
+# Create bucket
+resource "aws_s3_bucket" "etl_bucket" {
+  bucket        = "${var.bucket_name_prefix}-${random_string.suffix.result}"
+  force_destroy = true
 }
 
-variable "bucket_name_prefix" {
-  description = "Existing S3 bucket name where scripts and data will be stored"
-  type        = string
+# Enable ACLs by setting object ownership
+resource "aws_s3_bucket_ownership_controls" "acl_control" {
+  bucket = aws_s3_bucket.etl_bucket.id
+
+  rule {
+    object_ownership = "ObjectWriter"
+  }
 }
 
-# Allow public access by disabling block public access
-resource "aws_s3_bucket_public_access_block" "allow_public" {
-  bucket                  = var.bucket_name_prefix
+# Set ACL for the bucket
+resource "aws_s3_bucket_acl" "etl_bucket_acl" {
+  depends_on = [aws_s3_bucket_ownership_controls.acl_control]
+  bucket     = aws_s3_bucket.etl_bucket.id
+  acl        = "private" # Change to "public-read" if needed
+}
+
+# Disable Block Public Access
+resource "aws_s3_bucket_public_access_block" "disable_block" {
+  bucket = aws_s3_bucket.etl_bucket.id
+
   block_public_acls       = false
   block_public_policy     = false
   ignore_public_acls      = false
   restrict_public_buckets = false
 }
 
-# Make bucket publicly readable
-resource "aws_s3_bucket_acl" "public_acl" {
-  bucket = var.bucket_name_prefix
-  acl    = "public-read"
+# Bucket policy to allow Glue role read/write
+resource "aws_s3_bucket_policy" "glue_access" {
+  bucket = aws_s3_bucket.etl_bucket.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "AllowGlueReadWrite"
+        Effect    = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::963702399712:role/LabRole"
+        }
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.etl_bucket.arn,
+          "${aws_s3_bucket.etl_bucket.arn}/*"
+        ]
+      }
+    ]
+  })
+
+  depends_on = [aws_s3_bucket_public_access_block.disable_block]
 }
 
-# Glue database with timestamp in name
+# Glue database
 resource "aws_glue_catalog_database" "etl_db" {
-  name = "nyc-taxi-trip-db-${var.timestamp}"
+  name = "nyc-taxi-trip-db-${random_string.suffix.result}"
 }
 
+# Local variables
 locals {
-  glue_role_arn = var.glue_role_arn
+  glue_role_arn   = "arn:aws:iam::914016866997:role/LabRole"
+ }
+
+# Upload Glue ETL script to S3
+resource "aws_s3_object" "glue_script" {
+  bucket = aws_s3_bucket.etl_bucket.bucket
+  key    = "scripts/etl-glue-script.py"
+  source = "${path.module}/../etl/etl-glue-script.py"
+  etag   = filemd5("${path.module}/../etl/etl-glue-script.py")
 }
 
-# Glue ETL job with timestamp in name
+# Glue job
 resource "aws_glue_job" "etl_job" {
-  name     = "${var.glue_job_name}-${var.timestamp}"
+  name     = "${var.glue_job_name}-${random_string.suffix.result}"
   role_arn = local.glue_role_arn
 
   command {
     name            = "glueetl"
-    script_location = var.script_s3_path
+    script_location = local.script_s3_path
     python_version  = "3"
   }
 
   glue_version      = "4.0"
   number_of_workers = 2
   worker_type       = "G.1X"
+  depends_on        = [aws_s3_object.glue_script]
 }
 
-# Glue crawler with timestamp in name
+# Glue crawler
 resource "aws_glue_crawler" "etl_crawler" {
-  name          = "${var.glue_crawler_name}-${var.timestamp}"
+  name          = "${var.glue_crawler_name}-${random_string.suffix.result}"
   role          = local.glue_role_arn
   database_name = aws_glue_catalog_database.etl_db.name
 
   s3_target {
-    path = "s3://${var.bucket_name_prefix}/cleaned-data/transformeddata/"
+    path = "s3://inputdata-bucket-test/cleaned-data/transformeddata/"
   }
 
   depends_on = [aws_glue_job.etl_job]
