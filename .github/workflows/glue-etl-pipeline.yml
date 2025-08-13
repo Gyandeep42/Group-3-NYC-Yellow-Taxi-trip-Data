@@ -34,16 +34,16 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init
-        working-directory: terraform
+        working-directory: infra
         run: terraform init
 
       - name: Terraform Apply
-        working-directory: terraform
+        working-directory: infra
         run: terraform apply -auto-approve
 
       - name: Get Terraform Outputs
         id: get_bucket
-        working-directory: terraform
+        working-directory: infra
         run: |
           BUCKET=$(terraform output -raw etl_bucket_name)
           JOB_NAME=$(terraform output -raw glue_job_name)
