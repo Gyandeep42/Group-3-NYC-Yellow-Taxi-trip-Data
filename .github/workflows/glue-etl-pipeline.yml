@@ -46,6 +46,7 @@ jobs:
             -var="aws_account_id=${{ secrets.AWS_ACCOUNT_ID }}" \
             -var="timestamp=$(date +'%Y-%m-%d-%H-%M-%S')"
 
+
   run-etl:
     needs: infra-deploy
     runs-on: ubuntu-latest
