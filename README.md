@@ -1,3 +1,4 @@
+
 # 🚖 NYC Yellow Taxi Data ETL & Analytics Dashboard
 
 ## 📌 Project Overview
@@ -91,8 +92,8 @@ The project is designed for **data-driven decision-making** by the **NYC Governm
    - Remove null/invalid values
    - Map `PULocationID` and `DOLocationID` to zone names
    - Calculate new fields:
-     - `tip_percentage` = `(tip_amount / fare_amount) * 100`
-     - `distance_bucket` (0–1 mile / 1–5 mile / 5–10 mile / 10+ mile)
+   -tip_percentage` = `(tip_amount / fare_amount) * 100`
+   -distance_bucket` (0–1 mile / 1–5 mile / 5–10 mile / 10+ mile)
    
 3. **Load**  
    - Store cleaned, transformed data into the processed S3 bucket.
@@ -120,3 +121,6 @@ The project is designed for **data-driven decision-making** by the **NYC Governm
 ![Architecture Diagram](architecture-diagram.png)
 
 ---
+
+Power BI Dashboard – NYC Yellow Taxi Data Insights (Passenger Trends, Vendor Contribution, Payment Modes, and Location Analysis)
+
