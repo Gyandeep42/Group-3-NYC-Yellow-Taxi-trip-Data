@@ -1,39 +1,38 @@
-# Glue Database
-resource "aws_glue_catalog_database" "nyc_db" {
-  name = "nyc-yellow-taxi-trip-data"
+
+resource "aws_s3_bucket" "etl_bucket" {
+  bucket = var.bucket_name_prefix
 }
 
-# Glue Job
+resource "aws_glue_catalog_database" "etl_db" {
+  name = "nyc-taxi-trip_db"
+}
+
+locals {
+  glue_role_arn = "arn:aws:iam::963702399712:role/LabRole"
+}
+
 resource "aws_glue_job" "etl_job" {
-  name     = "glue-etl-job"
-  role_arn = var.glue_role_arn
+  name     = var.glue_job_name
+  role_arn = local.glue_role_arn
 
   command {
     name            = "glueetl"
-    script_location = "s3://${var.scripts_bucket}/etl-glue-script.py"
+    script_location = var.script_s3_path
     python_version  = "3"
   }
 
-  default_arguments = {
-    "--TempDir"                                = "s3://${var.temp_bucket}/tmp/"
-    "--job-language"                           = "python"
-    "--enable-metrics"                         = "true"
-    "--enable-continuous-cloudwatch-log"       = "true"
-    "--output_path"                            = "s3://${var.cleaned_bucket}/transformeddata/dataset/"
-  }
-
-  glue_version = "3.0"
-  max_capacity = 2
+  glue_version      = "4.0"
+  number_of_workers = 2
+  worker_type       = "G.1X"
 }
 
-# Glue Crawler
-resource "aws_glue_crawler" "nyc_crawler" {
-  name          = "nyc-crawler"
-  role          = var.glue_role_arn
-  database_name = aws_glue_catalog_database.nyc_db.name
+resource "aws_glue_crawler" "etl_crawler" {
+  name          = var.glue_crawler_name
+  role          = local.glue_role_arn
+  database_name = aws_glue_catalog_database.etl_db.name
 
   s3_target {
-    path = "s3://${var.cleaned_bucket}/transformeddata/dataset/"
+    path = "s3://raw-data-grp-3/cleaned-data/transformeddata/"
   }
 
   depends_on = [aws_glue_job.etl_job]
