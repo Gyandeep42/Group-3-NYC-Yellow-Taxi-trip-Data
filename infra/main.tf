@@ -34,11 +34,25 @@ resource "aws_glue_crawler" "etl_crawler" {
   database_name = aws_glue_catalog_database.etl_db.name
 
   s3_target {
-    path = "s3://raw-data-grp-3/cleaned-data/transformeddata/"
+    path = "s3://raw-data-grp-3/cleaned-data/transformeddata/dataset/"
+  }
+
+  configuration = jsonencode({
+    Version = 1.0
+    CrawlerOutput = {
+      Tables = {
+        AddOrUpdateBehavior = "MergeNewColumns"
+      }
+    }
+  })
+
+  recrawl_policy {
+    recrawl_behavior = "CRAWL_EVERYTHING"
   }
 
   depends_on = [aws_glue_job.etl_job]
 }
+
 
 # Trigger to start ETL Job on demand (or can make it scheduled)
 resource "aws_glue_trigger" "start_etl_job" {

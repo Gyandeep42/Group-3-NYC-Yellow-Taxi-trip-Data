@@ -105,8 +105,17 @@ transformed_df = (
 )
 
 # Write output in a crawler-friendly format
-output_path = "s3://raw-data-grp-3/cleaned-data/transformeddata/"
-transformed_df.write.mode("overwrite").partitionBy("year").parquet(output_path)
+output_path = "s3://raw-data-grp-3/cleaned-data/transformeddata/dataset/"
+
+(
+    transformed_df
+    .repartition("year")  # Good for partitions
+    .write.mode("overwrite")
+    .format("parquet")
+    .partitionBy("year")
+    .save(output_path)
+)
+
 
 # Commit job
 job.commit()
