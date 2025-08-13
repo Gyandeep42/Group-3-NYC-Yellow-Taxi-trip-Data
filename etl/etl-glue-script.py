@@ -21,7 +21,7 @@ job.init(args['JOB_NAME'], args)
 master_df= spark.read.option("header", True).parquet("s3://datalake-grp-03/nyc-merged-raw-data/part-00000-a7fd998c-ac15-4237-b9b0-684f953b2375-c000.snappy.parquet")
 zone_df = spark.read.option("header", True).csv("s3://nycfinalp/taxi_zone_lookup.csv")
 
-# Data transformations
+# Data transformations 
 transformed_df = (master_df
    # Filter out null & zero passenger_count and null & 99 RatecodeID
     .filter((col("passenger_count").isNotNull()) & (col("passenger_count") != 0))
