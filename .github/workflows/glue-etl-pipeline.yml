@@ -10,7 +10,7 @@ env:
   SCRIPT_PATH: etl/etl-glue-script.py
   S3_BUCKET: third-glue-bkt-grp-three-nyc
   ETL_JOB_NAME: glue-etl-job
-  CRAWLER_NAME: my-etl-crawler
+
 
 jobs:
   infra-deploy:
@@ -98,6 +98,13 @@ jobs:
             sleep 30
           done
 
+      - name: Get Terraform outputs
+        run: |
+          CRAWLER_NAME=$(terraform output -raw crawler_name)
+          echo "CRAWLER_NAME=$CRAWLER_NAME" >> $GITHUB_ENV
+
+
+
       - name: Start Glue Crawler
-        run: aws glue start-crawler --name ${{ env.CRAWLER_NAME }}
+        run: aws glue start-crawler --name $CRAWLER_NAME
 #
