@@ -5,12 +5,6 @@ on:
     branches:
       - Gyan
 
-env:
-  AWS_REGION: us-east-1
-  SCRIPT_PATH: etl/etl-glue-script.py
-  S3_BUCKET: third-glue-bkt-grp-three-nyc
-  ETL_JOB_NAME: glue-etl-job
-  CRAWLER_NAME: my-etl-crawler
 
 
 jobs:
@@ -42,13 +36,16 @@ jobs:
 
       - name: Terraform Apply
         working-directory: ./infra
+        run: terraform apply -auto-approve
+
+      - name: Get Terraform outputs
+        id: tf_outputs
+        working-directory: ./infra
         run: |
-          terraform apply -auto-approve \
-            -var "region=us-east-1" \
-            -var "etl_bucket_name=third-glue-bkt-grp-three-nyc" \
-            -var "glue_role_arn=arn:aws:iam::963702399712:role/LabRole" \
-            -var "script_s3_path=s3://third-glue-bkt-grp-three-nyc/scripts/latest/etl-glue-script.py" \
-            -var "raw_data_s3_path=s3://raw-data-grp-3/cleaned-data/transformeddata/"
+          ETL_JOB_NAME=$(terraform output -raw glue_job_name)
+          CRAWLER_NAME=$(terraform output -raw crawler_name)
+          echo "ETL_JOB_NAME=$ETL_JOB_NAME" >> $GITHUB_ENV
+          echo "CRAWLER_NAME=$CRAWLER_NAME" >> $GITHUB_ENV
 
   run-etl:
     needs: infra-deploy
@@ -109,6 +106,12 @@ jobs:
 
 
 
-      - name: Start Glue Crawler
-        run: aws glue start-crawler --name $CRAWLER_NAME
+      - name: Wait for Crawler to Finish
+        run: |
+          CRAWLER_STATUS="RUNNING"
+          while [ "$CRAWLER_STATUS" == "RUNNING" ]; do
+            CRAWLER_STATUS=$(aws glue get-crawler --name $CRAWLER_NAME --query 'Crawler.State' --output text)
+            echo "Crawler status: $CRAWLER_STATUS"
+            sleep 15
+          done
 #

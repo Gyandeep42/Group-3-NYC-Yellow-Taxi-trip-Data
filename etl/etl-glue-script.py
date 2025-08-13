@@ -107,6 +107,7 @@ transformed_df = (
 # Write output in a crawler-friendly format
 output_path = "s3://raw-data-grp-3/cleaned-data/transformeddata/dataset/"
 
+
 (
     transformed_df
     .repartition("year")  # Good for partitions
