@@ -1,29 +1,35 @@
-variable "aws_region" {
-  description = "AWS region to deploy resources"
-  default     = "us-east-1"
+#declare a region
+variable "region" {
+  default = "us-east-1"
 }
 
-variable "bucket_name" {
-  description = "S3 bucket name for storing ETL data"
-  default     = "my-etl-bucket-pranav"
+#declare a bucket name
+variable "bucket_name_prefix" {
+  default = "third-glue-bkt-grp-three-nyc"
 }
 
-variable "glue_db_name" {
-  description = "Base name for Glue database"
-  default     = "etl_database"
-}
 
+#declare a glue job name
 variable "glue_job_name" {
-  description = "Base name for Glue job"
-  default     = "glue-etl-job"
+  default = "glue-etl-job"
 }
 
-variable "crawler_name" {
-  description = "Base name for Glue crawler"
-  default     = "my-etl-crawler"
+#declare a crawler name
+variable "glue_crawler_name" {
+  default = "my-etl-crawler"
 }
 
-variable "script_path" {
-  description = "Path to Glue ETL script in S3"
-  default     = "etl/etl-glue-script.py"
+# Get the bucket name that matches the prefix
+data "aws_s3_bucket" "script_bucket" {
+  bucket = "${var.bucket_name_prefix}" # Or dynamically fetched
+}
+
+# Build the script path dynamically from actual bucket
+locals {
+  script_s3_path = "s3://${aws_s3_bucket.etl_bucket.bucket}/scripts/etl-glue-script.py"
+}
+
+variable "glue_role_arn" {
+  description = "IAM role ARN to use for Glue Job"
+  type        = string
 }
