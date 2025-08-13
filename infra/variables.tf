@@ -28,3 +28,8 @@ data "aws_s3_bucket" "script_bucket" {
 locals {
   script_s3_path = "s3://${aws_s3_bucket.etl_bucket.bucket}/scripts/etl-glue-script.py"
 }
+
+variable "glue_role_arn" {
+  description = "IAM role ARN to use for Glue Job"
+  type        = string
+}

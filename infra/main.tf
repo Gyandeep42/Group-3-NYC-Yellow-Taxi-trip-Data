@@ -47,7 +47,7 @@ resource "aws_s3_bucket_policy" "glue_access" {
         Sid       = "AllowGlueReadWrite"
         Effect    = "Allow"
         Principal = {
-          AWS = "arn:aws:iam::963702399712:role/LabRole"
+          AWS = var.glue_role_arn
         }
         Action = [
           "s3:GetObject",
@@ -72,7 +72,7 @@ resource "aws_glue_catalog_database" "etl_db" {
 
 # Local variables
 locals {
-  glue_role_arn   = "arn:aws:iam::914016866997:role/LabRole"
+  glue_role_arn   = var.glue_role_arn
  }
 
 # Upload Glue ETL script to S3
@@ -107,7 +107,7 @@ resource "aws_glue_crawler" "etl_crawler" {
   database_name = aws_glue_catalog_database.etl_db.name
 
   s3_target {
-    path = "s3://inputdata-bucket-test/cleaned-data/transformeddata/"
+    path = "s3://raw-data-grp-3/cleaned-data/transformeddata/"
   }
 
   depends_on = [aws_glue_job.etl_job]

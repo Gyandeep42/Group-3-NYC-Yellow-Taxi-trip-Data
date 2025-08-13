@@ -40,6 +40,8 @@ jobs:
       - name: Terraform Apply
         working-directory: infra
         run: terraform apply -auto-approve
+        env:
+          TF_VAR_glue_role_arn: ${{ secrets.GLUE_ROLE_ARN }}
 
       - name: Get Terraform Outputs
         id: get_bucket
