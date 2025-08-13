@@ -1,2 +1,2 @@
 # Group-3-NYC-Yellow-Taxi-trip-Data
-WE ARE FRAMING THE STORY OF NYC YELLOW TAXI DATA. 
+Power BI Dashboard – NYC Yellow Taxi Data Insights (Passenger Trends, Vendor Contribution, Payment Modes, and Location Analysis)
