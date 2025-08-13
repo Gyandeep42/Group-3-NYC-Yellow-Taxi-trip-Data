@@ -34,7 +34,7 @@ resource "aws_glue_catalog_database" "etl_db" {
 }
 
 locals {
-  glue_role_arn = "arn:aws:iam::${var.aws_account_id}:role/LabRole"
+  glue_role_arn = var.glue_role_arn
 }
 
 # Glue ETL job with timestamp in name

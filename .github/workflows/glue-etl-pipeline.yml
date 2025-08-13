@@ -45,6 +45,8 @@ jobs:
           terraform apply -auto-approve \
             -var="aws_account_id=${{ secrets.AWS_ACCOUNT_ID }}" \
             -var="timestamp=$(date +'%Y-%m-%d-%H-%M-%S')"
+        env:
+          TF_VAR_glue_role_arn: ${{ secrets.GLUE_ROLE_ARN }}
 
 
   run-etl:
