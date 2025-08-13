@@ -8,14 +8,14 @@ variable "timestamp" {
   type        = string
 }
 
-resource "aws_s3_bucket" "etl_bucket" {
-  bucket        = var.bucket_name_prefix
-  force_destroy = false
+variable "bucket_name_prefix" {
+  description = "Existing S3 bucket name where scripts and data will be stored"
+  type        = string
 }
 
 # Allow public access by disabling block public access
 resource "aws_s3_bucket_public_access_block" "allow_public" {
-  bucket                  = aws_s3_bucket.etl_bucket.id
+  bucket                  = var.bucket_name_prefix
   block_public_acls       = false
   block_public_policy     = false
   ignore_public_acls      = false
@@ -24,7 +24,7 @@ resource "aws_s3_bucket_public_access_block" "allow_public" {
 
 # Make bucket publicly readable
 resource "aws_s3_bucket_acl" "public_acl" {
-  bucket = aws_s3_bucket.etl_bucket.id
+  bucket = var.bucket_name_prefix
   acl    = "public-read"
 }
 
