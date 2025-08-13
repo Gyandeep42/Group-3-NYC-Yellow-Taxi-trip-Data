@@ -5,7 +5,12 @@ on:
     branches:
       - Gyan
 
-
+env:
+  AWS_REGION: us-east-1
+  SCRIPT_PATH: etl/etl-glue-script.py
+  S3_BUCKET: third-glue-bkt-grp-three-nyc
+  ETL_JOB_NAME: glue-etl-job
+  CRAWLER_NAME: my-etl-crawler
 
 jobs:
   infra-deploy:
@@ -20,32 +25,22 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init
-        working-directory: ./infra
+        working-directory: infra
         run: terraform init
 
-
       - name: Terraform Validate
-        working-directory: ./infra
+        working-directory: infra
         run: terraform validate
 
       - name: Terraform Apply
-        working-directory: ./infra
+        working-directory: infra
         run: terraform apply -auto-approve
-
-      - name: Get Terraform outputs
-        id: tf_outputs
-        working-directory: ./infra
-        run: |
-          ETL_JOB_NAME=$(terraform output -raw glue_job_name)
-          CRAWLER_NAME=$(terraform output -raw crawler_name)
-          echo "ETL_JOB_NAME=$ETL_JOB_NAME" >> $GITHUB_ENV
-          echo "CRAWLER_NAME=$CRAWLER_NAME" >> $GITHUB_ENV
 
   run-etl:
     needs: infra-deploy
@@ -60,27 +55,18 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Upload ETL Script to S3 with new folder
+      - name: Upload ETL Script to S3
         run: |
-          BUCKET_NAME="third-glue-bkt-grp-three-nyc"
-          PREFIX="scripts/run"
-          COUNT=1
-          while aws s3 ls s3://$BUCKET_NAME/${PREFIX}${COUNT}/ > /dev/null 2>&1; do
-            COUNT=$((COUNT+1))
-          done
-          FOLDER="${PREFIX}${COUNT}"
-          aws s3 cp ${{ env.SCRIPT_PATH }} s3://$BUCKET_NAME/$FOLDER/etl-glue-script.py
-          echo "Script uploaded to s3://$BUCKET_NAME/$FOLDER/"
-
+          aws s3 cp ${{ env.SCRIPT_PATH }} s3://${{ env.S3_BUCKET }}/scripts/etl-glue-script.py
+          echo "ETL script uploaded to S3."
       - name: Start Glue ETL Job
         id: start_etl
         run: |
           JOB_RUN_ID=$(aws glue start-job-run --job-name ${{ env.ETL_JOB_NAME }} --query 'JobRunId' --output text)
           echo "ETL JobRunId: $JOB_RUN_ID"
           echo "job_run_id=$JOB_RUN_ID" >> $GITHUB_OUTPUT
-
       - name: Wait for ETL Job Completion
         run: |
           JOB_RUN_ID=${{ steps.start_etl.outputs.job_run_id }}
@@ -96,22 +82,6 @@ jobs:
             fi
             sleep 30
           done
-
-      - name: Get Terraform outputs
-        working-directory: ./infra
-        run: |
-          CRAWLER_NAME=$(terraform output -raw crawler_name)
-          echo "CRAWLER_NAME=$CRAWLER_NAME" >> $GITHUB_ENV
-
-
-
-
-      - name: Wait for Crawler to Finish
-        run: |
-          CRAWLER_STATUS="RUNNING"
-          while [ "$CRAWLER_STATUS" == "RUNNING" ]; do
-            CRAWLER_STATUS=$(aws glue get-crawler --name $CRAWLER_NAME --query 'Crawler.State' --output text)
-            echo "Crawler status: $CRAWLER_STATUS"
-            sleep 15
-          done
-#
+      - name: Start Glue Crawler
+        run: aws glue start-crawler --name ${{ env.CRAWLER_NAME }}
+#rjevejvnfdljjnijjewdhkjjhghjdfjdeh
