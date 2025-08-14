@@ -1,12 +1,13 @@
-resource "random_string" "suffix" {
-  length  = 6
-  upper   = false
-  special = false
+# Local timestamp variable
+locals {
+  timestamp       = formatdate("YYYY-MM-DD-hh-mm-ss", timestamp())
+  glue_role_arn   = var.glue_role_arn
+  script_s3_path  = "s3://${aws_s3_bucket.etl_bucket.bucket}/scripts/etl-glue-script.py"
 }
 
-# Create bucket
+# Create bucket with timestamp suffix
 resource "aws_s3_bucket" "etl_bucket" {
-  bucket        = "${var.bucket_name_prefix}-${random_string.suffix.result}"
+  bucket        = "${var.bucket_name_prefix}-${local.timestamp}"
   force_destroy = true
 }
 
@@ -67,13 +68,8 @@ resource "aws_s3_bucket_policy" "glue_access" {
 
 # Glue database
 resource "aws_glue_catalog_database" "etl_db" {
-  name = "nyc-taxi-trip-db-${random_string.suffix.result}"
+  name = "nyc-taxi-trip-db-${local.timestamp}"
 }
-
-# Local variables
-locals {
-  glue_role_arn   = var.glue_role_arn
- }
 
 # Upload Glue ETL script to S3
 resource "aws_s3_object" "glue_script" {
@@ -85,7 +81,7 @@ resource "aws_s3_object" "glue_script" {
 
 # Glue job
 resource "aws_glue_job" "etl_job" {
-  name     = "${var.glue_job_name}-${random_string.suffix.result}"
+  name     = "${var.glue_job_name}-${local.timestamp}"
   role_arn = local.glue_role_arn
 
   command {
@@ -102,7 +98,7 @@ resource "aws_glue_job" "etl_job" {
 
 # Glue crawler
 resource "aws_glue_crawler" "etl_crawler" {
-  name          = "${var.glue_crawler_name}-${random_string.suffix.result}"
+  name          = "${var.glue_crawler_name}-${local.timestamp}"
   role          = local.glue_role_arn
   database_name = aws_glue_catalog_database.etl_db.name
 
@@ -112,4 +108,3 @@ resource "aws_glue_crawler" "etl_crawler" {
 
   depends_on = [aws_glue_job.etl_job]
 }
-#
