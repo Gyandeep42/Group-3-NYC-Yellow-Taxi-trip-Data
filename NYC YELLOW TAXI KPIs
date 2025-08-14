@@ -1,0 +1,35 @@
+Let's create a KPIs from the dashboard
+Key Performance Indicators – NYC Yellow Taxi Data Insights
+
+Duration: June 2019 – May 2021
+
+Main KPIs:
+1. Total Passengers: 30M
+2. Total Amount: $362.91M
+3. Total Fare Amount: $248.43M
+4. Total Tip Amount: $42.17M
+5. Total Tolls Amount: $6.40M
+6. MTA Tax Collected: $9.57M
+7. Total Trips Count: 19M
+
+Additional Insights:
+- Passenger Count Drill Down: 2019 – 11.3M | 2020 – 5.9M | 2021 – 2.2M
+- Vendor Contribution:
+  - Curb Mobility, LLC – $13.0M
+  - Creative Mobile Technologies – $6.4M
+- Payment Types:
+  - Credit Card – $14.0M
+  - Cash – $5.2M
+  - No Charge – $0.1M
+  - Dispute – $0.1M
+- Trips Distribution by Districts:
+  - Queens – 26.36%
+  - Manhattan – 25.97%
+  - Brooklyn – 23.64%
+  - Bronx – 16.87%
+  - Staten Island – 7.36%
+- Heatmap Insight: Highest demand on Thursday around 3 PM (3.82M trips)
+- Top Pickup Zones: Upper East Side North, Upper East Side South, Times Sq/Theatre District, Penn Station/Madison Sq West, Union Sq
+- Top Drop-off Zones: Upper East Side North, Upper East Side South, Times Sq/Theatre District, Midtown Center, Union Sq
+
+This dashboard transforms raw NYC Yellow Taxi trip data into meaningful KPIs and visual insights, enabling informed decisions with ease.
