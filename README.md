@@ -134,5 +134,5 @@ Power BI Dashboard – NYC Yellow Taxi Data Insights (Passenger Trends, Vendor C
 - Amrapali Makrand
 - Pranav Patil
 - Shantanu Patil
-- Saurabh Patil
+- Saurabh Bhangale
 - Kunal Rahangdale
