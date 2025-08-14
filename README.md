@@ -118,9 +118,10 @@ The project is designed for **data-driven decision-making** by the **NYC Governm
 ---
 
 ## 🖼️ Architecture Diagram
-![Architecture Diagram](architecture-diagram.png)
+![Architecture Diagram](Architecture%20Diagram.png)
 
 ---
 
 Power BI Dashboard – NYC Yellow Taxi Data Insights (Passenger Trends, Vendor Contribution, Payment Modes, and Location Analysis)
-
+![Screenshot 1390](Screenshot%20(1390).png)
+![Screenshot 1391](Screenshot%20(1391).png)
