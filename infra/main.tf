@@ -24,7 +24,7 @@ resource "aws_s3_bucket_ownership_controls" "acl_control" {
 resource "aws_s3_bucket_acl" "etl_bucket_acl" {
   depends_on = [aws_s3_bucket_ownership_controls.acl_control]
   bucket     = aws_s3_bucket.etl_bucket.id
-  acl        = "private" # Change to "public-read" if needed
+  acl        = "public-read" # Change to "public-read" if needed
 }
 
 # Disable Block Public Access
