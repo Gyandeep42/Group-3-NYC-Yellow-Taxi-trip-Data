@@ -2,7 +2,7 @@
 # 🚖 NYC Yellow Taxi Data ETL & Analytics Dashboard
 
 ## 📌 Project Overview
-The **NYC Yellow Taxi Data ETL & Analytics Dashboard** project processes over **527 million** taxi trip records from **2016 to 2022**.  
+The **NYC Yellow Taxi Data ETL & Analytics Dashboard** project processes over **77 million** taxi trip records from **JUNE 2019 to MAY 2021**.  
 It performs **data extraction, transformation, and loading (ETL)** using **AWS Glue** and **PySpark**, stores the cleaned data in Amazon S3, and visualizes key transportation insights through an **interactive Power BI dashboard**.
 
 The project is designed for **data-driven decision-making** by the **NYC Government** to improve transportation planning, policy-making, and public accessibility of taxi trip data.
@@ -10,7 +10,7 @@ The project is designed for **data-driven decision-making** by the **NYC Governm
 ---
 
 ## 🚀 Features
-- **Data Volume**: Handles **527M+** rows of Yellow Taxi trip data
+- **Data Volume**: Handles **77M+** rows of Yellow Taxi trip data
 - **Automated ETL Pipeline**: Built with **AWS Glue** and **Terraform** for full CI/CD automation
 - **Data Storage**: Raw and cleaned data stored in **Amazon S3**
 - **Data Transformation**:
@@ -125,3 +125,14 @@ The project is designed for **data-driven decision-making** by the **NYC Governm
 Power BI Dashboard – NYC Yellow Taxi Data Insights (Passenger Trends, Vendor Contribution, Payment Modes, and Location Analysis)
 ![Screenshot 1390](Screenshot%20(1390).png)
 ![Screenshot 1391](Screenshot%20(1391).png)
+
+
+## Team Members
+- Gyandeep Yadav
+- Varsha Pal
+- Megha Dave
+- Amrapali Makrand
+- Pranav Patil
+- Shantanu Patil
+- Saurabh Patil
+- Kunal Rahangdale
